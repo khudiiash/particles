@@ -1,0 +1,1611 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>GPU Particle Editor</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #12121f;
+            color: #eee;
+            font-family: ui-monospace, monospace;
+            font-size: 12px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            padding: 10px 14px;
+            background: #1a1a2e;
+            border-bottom: 1px solid #333;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        header h1 { font-size: 14px; margin-right: auto; color: #f0a500; }
+        button, label.file-btn {
+            background: #0f3460;
+            color: #eee;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 10px;
+            cursor: pointer;
+            font: inherit;
+        }
+        button:hover, label.file-btn:hover { background: #1a4a80; }
+        button.primary { background: #e94560; }
+        button.primary:hover { background: #ff6b81; }
+        #status { color: #8f8; min-width: 200px; }
+        #status.error { color: #f88; }
+        main { flex: 1; display: flex; min-height: 0; }
+        #sidebar {
+            width: 320px;
+            background: #16213e;
+            padding: 12px;
+            overflow-y: auto;
+            border-right: 1px solid #333;
+        }
+        #sidebar h2 {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #888;
+            margin: 12px 0 8px;
+        }
+        #sidebar h2:first-child { margin-top: 0; }
+        .field { margin-bottom: 10px; }
+        .field label { display: block; color: #aaa; margin-bottom: 4px; }
+        .field input, .field textarea {
+            width: 100%;
+            background: #0d1b2a;
+            border: 1px solid #333;
+            color: #eee;
+            padding: 6px;
+            border-radius: 4px;
+            font: inherit;
+        }
+        #preview-wrap {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            position: relative;
+            overflow: hidden;
+        }
+        #preview-wrap canvas#preview {
+            flex: 1;
+            width: 100%;
+            background: #0a0a12;
+            display: block;
+            touch-action: none;
+        }
+        #camera-hint {
+            position: absolute;
+            left: 10px;
+            bottom: 10px;
+            padding: 6px 10px;
+            background: rgba(0, 0, 0, 0.55);
+            border-radius: 4px;
+            color: #888;
+            font-size: 11px;
+            pointer-events: none;
+            line-height: 1.4;
+        }
+        #editors {
+            width: 42%;
+            min-width: 320px;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid #333;
+        }
+        .tabs { display: flex; background: #1a1a2e; }
+        .tab {
+            flex: 1;
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            color: #888;
+        }
+        .tab.active { color: #f0a500; border-bottom-color: #f0a500; }
+        textarea.editor {
+            flex: 1;
+            width: 100%;
+            resize: none;
+            background: #0d1b2a;
+            color: #cde;
+            border: none;
+            padding: 10px;
+            font: 12px/1.4 ui-monospace, monospace;
+        }
+        .path-toolbar {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        .path-toolbar button { flex: 1; font-size: 11px; padding: 5px 8px; }
+        #path-overlay { pointer-events: auto; }
+        #r-colorMapFile { display: none; }
+        .texture-row { display: flex; gap: 6px; align-items: center; }
+        .texture-row button { flex: 0 0 auto; white-space: nowrap; }
+        .texture-path {
+            flex: 1;
+            font-size: 10px;
+            color: #8899aa;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .row { display: flex; gap: 6px; }
+        .row button, .row select { flex: 1; }
+        select {
+            background: #0d1b2a;
+            border: 1px solid #333;
+            color: #eee;
+            padding: 6px;
+            border-radius: 4px;
+            font: inherit;
+            width: 100%;
+        }
+        .param-group { margin-bottom: 8px; }
+        button.danger { background: #5a1a1a; }
+        button.danger:hover { background: #7a2020; }
+        button:disabled { opacity: 0.45; cursor: not-allowed; }
+        .field.compact { margin-bottom: 6px; }
+        .field.compact label { font-size: 10px; margin-bottom: 2px; }
+        .field.compact input, .field.compact select { padding: 4px 6px; font-size: 11px; }
+        .curve-block {
+            background: #0d1b2a;
+            border: 1px solid #2a2a40;
+            border-radius: 6px;
+            padding: 8px;
+            margin-bottom: 8px;
+        }
+        .curve-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+        }
+        .curve-label { color: #f0a500; font-weight: bold; flex: 1; min-width: 60px; }
+        .curve-head-advanced { margin-bottom: 6px; }
+        .btn-graph-toggle {
+            background: #1a2535;
+            border: 1px solid #333;
+            color: #8899aa;
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            border-radius: 3px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+        }
+        .btn-graph-toggle:hover { background: #243044; color: #f0a500; border-color: #555; }
+        .btn-graph-toggle.active { color: #f0a500; border-color: #f0a500; }
+        .curve-simple-value {
+            width: 72px;
+            padding: 4px 6px;
+            font-size: 11px;
+            flex: 0 0 auto;
+        }
+        .curve-simple-color {
+            width: 36px;
+            height: 24px;
+            padding: 0;
+            border: 1px solid #333;
+            background: none;
+            cursor: pointer;
+            flex: 0 0 auto;
+        }
+        .curve-unit {
+            color: #666;
+            font-size: 11px;
+            flex: 0 0 auto;
+        }
+        .curve-hint-simple {
+            margin-top: 2px;
+        }
+        .curve-advanced { margin-top: 4px; }
+        .chk {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: #888;
+            font-size: 10px;
+            cursor: pointer;
+        }
+        .chk input { width: auto; margin: 0; }
+        .kv-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 6px;
+            margin-bottom: 4px;
+        }
+        .kv-grid label {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            color: #666;
+            font-size: 9px;
+        }
+        .kv-grid input, .kv-grid select {
+            width: 100%;
+            padding: 3px 5px;
+            font-size: 11px;
+            box-sizing: border-box;
+        }
+        .btn-mini {
+            background: #1a2535;
+            border: 1px solid #333;
+            color: #aaa;
+            width: 22px;
+            height: 22px;
+            padding: 0;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+        }
+        .btn-mini:hover { background: #243044; color: #fff; }
+        .channel-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 4px;
+        }
+        .channel-btn {
+            flex: 1;
+            padding: 3px 0;
+            font-size: 10px;
+            font-weight: bold;
+            border: 1px solid #333;
+            border-radius: 3px;
+            background: #0d1b2a;
+            color: #888;
+            cursor: pointer;
+        }
+        .channel-btn[data-channel="x"] { color: #e55; }
+        .channel-btn[data-channel="y"] { color: #5c5; }
+        .channel-btn[data-channel="z"] { color: #59f; }
+        .channel-btn.active { background: #1a2535; border-color: #555; opacity: 1; }
+        .channel-btn:not(.active) { opacity: 0.4; }
+        .curve-hint {
+            color: #555;
+            font-size: 9px;
+            margin: 4px 0 0;
+            line-height: 1.3;
+        }
+        .color-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+        .color-row label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #aaa;
+            font-size: 10px;
+        }
+        .color-row input[type=color] {
+            width: 36px;
+            height: 24px;
+            padding: 0;
+            border: 1px solid #333;
+            background: none;
+            cursor: pointer;
+        }
+        .param-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+        .check-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 14px;
+            margin: 6px 0 8px;
+        }
+        .field.compact input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+        canvas.curve-graph {
+            width: 100%;
+            height: 80px;
+            display: block;
+            margin-bottom: 6px;
+            border-radius: 4px;
+            border: 1px solid #1e2a3a;
+            cursor: crosshair;
+        }
+        canvas.vel-graph { height: 100px; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>GPU Particle Editor</h1>
+        <button id="btn-save" class="primary">Save</button>
+        <button id="btn-pause">Pause preview</button>
+        <button id="btn-new">New</button>
+        <button id="btn-delete" class="danger">Delete</button>
+        <button id="btn-reset-camera">Reset camera</button>
+        <button id="btn-export">Download</button>
+        <label class="file-btn">Import<input type="file" id="import-file" accept="application/json" /></label>
+        <span id="status">Loading…</span>
+    </header>
+    <main>
+        <aside id="sidebar"></aside>
+        <div id="preview-wrap">
+            <div id="camera-hint">Drag to orbit · Scroll to zoom · Orange anchor = emitter origin (all modes) · Gizmo to move</div>
+        </div>
+        <div id="editors">
+            <div class="tabs">
+                <div class="tab active" data-tab="sim">Simulation WGSL</div>
+                <div class="tab" data-tab="vert">Vertex WGSL</div>
+                <div class="tab" data-tab="frag">Fragment WGSL</div>
+            </div>
+            <textarea id="editor-sim" class="editor" spellcheck="false"></textarea>
+            <textarea id="editor-vert" class="editor hidden" spellcheck="false"></textarea>
+            <textarea id="editor-frag" class="editor hidden" spellcheck="false"></textarea>
+        </div>
+    </main>
+
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+}
+</script>
+<script type="module">
+import {
+    SCALAR_CURVES,
+    PARAM_FIELDS,
+    mergeParams,
+    mergeCurves,
+    migrateEffect,
+    packSimUniforms,
+    curveRowHtml,
+    colorCurveHtml,
+    readCurvesFromSidebar,
+    SIM_UNIFORM_BYTES,
+} from "./particles/curves.js";
+import { setupCurveEditors } from "./particles/curve-ui.js";
+import { pathParamHtml, packPathBuffer, mergePath, normalizePathAnchor, canonicalizeStoredPath, PATH_BUFFER_BYTES, PATH_PARAM_FIELDS, bindPathShapePanel } from "./particles/path.js";
+import { motionPanelHtml, bindMotionModePanels } from "./particles/motion.js";
+import { renderPanelHtml, readRenderFromUI, readExtendedParamsFromUI, readShowBoundsFromUI, mergeRender, bindTextureUpload, bindCollisionPanel } from "./particles/render.js";
+import { noisePanelHtml, readNoiseFromUI, bindNoisePanel } from "./particles/noise.js";
+import { createThreePreview } from "./particles/preview-three.js";
+import { PARTICLE_STRIDE_FLOATS } from "./particles/layout.js";
+import { createMpmBuffers, setupMpmGpu, fluidFrameDt } from "./particles/mpm-gpu.js";
+import { createFluidGpu, fluidGridDim, fluidDeviceLimits } from "./particles/fluid-gpu.js";
+import { paramsToFluidConfig } from "./particles/fluid-params.js";
+
+const PARTICLE_BYTES = PARTICLE_STRIDE_FLOATS * 4;
+const DISPATCH_STRIDE = 1024;
+
+function calcDispatch(count, workgroupSize) {
+    const wg = workgroupSize || 64;
+    const groupsX = Math.max(1, Math.ceil(count / (wg * DISPATCH_STRIDE)));
+    return { x: groupsX, y: DISPATCH_STRIDE };
+}
+
+let config = null;
+let currentFileId = null;
+const TEMPLATE_EFFECT_IDS = new Set(["basic"]);
+let effectFiles = [];
+let gpu = null;
+let fluidGpu = null;
+let sharedContext = null;
+let previewRunning = true;
+let time = 0;
+let lastTs = 0;
+
+let threePreview = null;
+let previewDebounce = null;
+
+const previewWrap = document.getElementById('preview-wrap');
+const statusEl = document.getElementById('status');
+const sidebar = document.getElementById('sidebar');
+
+const editors = {
+    sim: document.getElementById('editor-sim'),
+    vert: document.getElementById('editor-vert'),
+    frag: document.getElementById('editor-frag'),
+};
+
+function setStatus(msg, isError = false) {
+    statusEl.textContent = msg;
+    statusEl.className = isError ? 'error' : '';
+}
+
+function isPlayCanvasRender(vertexSrc) {
+    if (typeof vertexSrc !== 'string') return false;
+    return vertexSrc.includes('varying ') || vertexSrc.includes('VertexInput');
+}
+
+function rawRenderBindingsWgsl() {
+    return `
+struct RenderUniforms {
+    matrix_viewProjection: mat4x4f,
+    matrix_view: mat4x4f,
+};
+
+@group(0) @binding(0) var<uniform> ub: RenderUniforms;
+@group(0) @binding(1) var<storage, read> particles: array<Particle>;
+`;
+}
+
+function stripRawRenderBindings(src) {
+    return (src || '')
+        .replace(/struct RenderUniforms[\s\S]*?};\s*/g, '')
+        .replace(/@group\(0\) @binding\(0\)\s*var<uniform>\s*ub:\s*RenderUniforms;\s*/g, '')
+        .replace(/@group\(0\) @binding\(1\)\s*var<storage,\s*read>\s*particles:\s*array<Particle>;\s*/g, '')
+        .replace(/var<storage,\s*read>\s*particles:\s*array<Particle>;\s*/g, '')
+        .trim();
+}
+
+function hasRawRenderBindings(src) {
+    return /@group\(0\) @binding\(0\)[\s\S]*ub:\s*RenderUniforms/.test(src)
+        && /particles:\s*array<Particle>/.test(src);
+}
+
+function dedupeRawRender(render) {
+    const shared = stripRawRenderBindings(render.wgslShared || '');
+    const vertex = stripRawRenderBindings(render.vertexWgsl || '');
+    const fragment = stripRawRenderBindings(render.fragmentWgsl || '');
+
+    const mergedShared = hasRawRenderBindings(shared)
+        ? shared
+        : [shared, rawRenderBindingsWgsl().trim()].filter(Boolean).join('\n\n');
+
+    return {
+        ...mergeRender(render),
+        wgslShared: mergedShared,
+        vertexWgsl: vertex,
+        fragmentWgsl: fragment,
+    };
+}
+
+function playCanvasVertexToRaw(vertexSrc) {
+    let body = stripRawRenderBindings(vertexSrc)
+        .replace(/^varying .+\n/gm, '')
+        .replace(/^uniform matrix_view:.+\n/gm, '')
+        .replace(/^uniform matrix_viewProjection:.+\n/gm, '')
+        .replace(/^uniform uParticleSize:.+\n/gm, '')
+        .replace(/^uniform uColorR:.+\n/gm, '')
+        .replace(/^uniform uColorG:.+\n/gm, '')
+        .replace(/^uniform uColorB:.+\n/gm, '')
+        .replace(/^var<storage, read> particles:.+\n/gm, '')
+        .replace(/^struct VertexOutput[\s\S]*?};\s*/m, '')
+        .trim();
+
+    body = body
+        .replace(/^\s*let vid = input\.vertexIndex;\s*\n/gm, '')
+        .replace(
+            /fn vertexMain\(input: VertexInput\) -> VertexOutput/,
+            'fn vertexMain(@builtin(vertex_index) vid: u32) -> VertexOutput',
+        )
+        .replace(/input\.vertexIndex/g, 'vid')
+        .replace(/uniform\.uParticleSize/g, 'ub.particleSize')
+        .replace(/uniform\.uColorR/g, 'ub.colorR')
+        .replace(/uniform\.uColorG/g, 'ub.colorG')
+        .replace(/uniform\.uColorB/g, 'ub.colorB')
+        .replace(/uniform\./g, 'ub.')
+        .replace(/^\s*let vid = vid;\s*\n/gm, '');
+
+    const header = `
+struct VertexOutput {
+    @builtin(position) position: vec4f,
+    @location(0) color: vec4f,
+};
+`;
+
+    return `${header}\n${body}`;
+}
+
+function playCanvasFragmentToRaw(fragmentSrc) {
+    let body = stripRawRenderBindings(fragmentSrc)
+        .replace(/^varying .+\n/gm, '')
+        .replace(/^var<storage, read> particles:.+\n/gm, '')
+        .replace(/^struct FragmentInput[\s\S]*?};\s*/m, '')
+        .replace(/^struct FragmentOutput[\s\S]*?};\s*/m, '')
+        .trim();
+    body = body
+        .replace(/uniform\.uColorR/g, 'ub.colorR')
+        .replace(/uniform\.uColorG/g, 'ub.colorG')
+        .replace(/uniform\.uColorB/g, 'ub.colorB');
+
+    const header = `
+struct FragmentInput {
+    @location(0) color: vec4f,
+};
+
+struct FragmentOutput {
+    @location(0) color: vec4f,
+};
+`;
+
+    return `${header}\n${body}`;
+}
+
+function rawVertexToPlayCanvas(vertexSrc) {
+    let body = vertexSrc
+        .replace(/struct RenderUniforms[\s\S]*?};\n/g, '')
+        .replace(/@group\(0\) @binding\(0\)[^\n]+\n/g, '')
+        .replace(/@group\(0\) @binding\(1\)[^\n]+\n/g, '')
+        .replace(/struct VertexOutput[\s\S]*?};\n/g, '')
+        .trim();
+
+    body = body
+        .replace(
+            /fn vertexMain\(@builtin\(vertex_index\) vid: u32\) -> VertexOutput/,
+            'fn vertexMain(input: VertexInput) -> VertexOutput',
+        )
+        .replace(/\bvid\b/g, 'input.vertexIndex')
+        .replace(/ub\.particleSize/g, 'uniform.uParticleSize')
+        .replace(/ub\.colorR/g, 'uniform.uColorR')
+        .replace(/ub\.colorG/g, 'uniform.uColorG')
+        .replace(/ub\.colorB/g, 'uniform.uColorB')
+        .replace(/ub\./g, 'uniform.');
+
+    const header = `
+varying color: vec4f;
+
+uniform matrix_view: mat4x4f;
+uniform matrix_viewProjection: mat4x4f;
+
+var<storage, read> particles: array<Particle>;
+`;
+
+    return `${header}\n${body}`;
+}
+
+function rawFragmentToPlayCanvas(fragmentSrc) {
+    let body = fragmentSrc
+        .replace(/@group\(0\) @binding\(0\)[^\n]+\n/g, '')
+        .replace(/struct FragmentInput[\s\S]*?};\n/g, '')
+        .replace(/struct FragmentOutput[\s\S]*?};\n/g, '')
+        .trim();
+
+    body = body
+        .replace(/ub\.colorR/g, 'uniform.uColorR')
+        .replace(/ub\.colorG/g, 'uniform.uColorG')
+        .replace(/ub\.colorB/g, 'uniform.uColorB');
+
+    const header = `
+varying color: vec4f;
+`;
+
+    return `${header}\n${body}`;
+}
+
+function playCanvasRenderToRaw(render) {
+    if (!isPlayCanvasRender(render.vertexWgsl)) return dedupeRawRender(render);
+    const meta = mergeRender(render);
+    return dedupeRawRender({
+        ...meta,
+        wgslShared: render.wgslShared || '',
+        vertexWgsl: playCanvasVertexToRaw(render.vertexWgsl),
+        fragmentWgsl: playCanvasFragmentToRaw(render.fragmentWgsl),
+    });
+}
+
+function rawRenderToPlayCanvas(render) {
+    if (isPlayCanvasRender(render.vertexWgsl)) return mergeRender(render);
+    return {
+        ...mergeRender(render),
+        wgslShared: stripRawRenderBindings(render.wgslShared || ''),
+        vertexWgsl: rawVertexToPlayCanvas(render.vertexWgsl),
+        fragmentWgsl: rawFragmentToPlayCanvas(render.fragmentWgsl),
+    };
+}
+
+function buildSidebar(cfg) {
+    const params = mergeParams(cfg.params);
+    const curves = mergeCurves(cfg.curves);
+
+    const scalarHtml = SCALAR_CURVES.map((c) =>
+        curveRowHtml(c.key, c.label, curves[c.key], c.step),
+    ).join("");
+
+    const physicsHtml = PARAM_FIELDS.map((f) => {
+        if (f.type === "select") {
+            const val = params[f.key] ?? f.default;
+            const opts = f.options.map((o) =>
+                `<option value="${o.id}"${val === o.id ? " selected" : ""}>${o.label}</option>`).join("");
+            return `<div class="field compact"><label>${f.label}</label><select id="p-${f.key}">${opts}</select></div>`;
+        }
+        const attrs = [`step="${f.step}"`, f.min != null ? `min="${f.min}"` : ""].filter(Boolean).join(" ");
+        return `<div class="field compact"><label>${f.label}</label><input id="p-${f.key}" type="number" ${attrs} value="${params[f.key]}" /></div>`;
+    }).join("");
+
+    sidebar.innerHTML = `
+        <h2>Files</h2>
+        <div class="field">
+            <label>Open effect</label>
+            <select id="file-select"></select>
+        </div>
+        <h2>Effect</h2>
+        <div class="field compact"><label>Name</label><input id="f-name" value="${cfg.name}" /></div>
+        <div class="field compact"><label>Max particles</label><input id="f-max" type="number" min="1" value="${cfg.maxParticles}" /></div>
+        <div class="field compact"><label>Workgroup size</label><input id="f-wg" type="number" value="${cfg.workgroupSize || 64}" /></div>
+        <div class="field compact"><label>Sim entry point</label><input id="f-entry" value="${cfg.simulation.entryPoint || 'updateParticles'}" /></div>
+        <h2>Physics</h2>
+        <div class="param-grid">${physicsHtml}</div>
+        <h2>Curves</h2>
+        ${scalarHtml}
+        ${colorCurveHtml(curves.color)}
+        ${motionPanelHtml(params, curves)}
+        ${noisePanelHtml(params)}
+        ${renderPanelHtml(cfg.render, params)}
+        <p style="color:#666;margin-top:12px;line-height:1.4;font-size:10px" id="motion-hint">${params.motionMode === "spline" ? "Edit the 3D spline in the viewport." : params.motionMode === "boids" ? "Boids — flocking with separation, alignment, and cohesion." : params.motionMode === "fluid" ? "Grid volume fluid — orbit with the editor camera." : params.motionMode === "hair" ? "Hair/grass — strands grow from a plane surface with wind and gravity bend." : "Velocity — particles use X/Y/Z curves over lifetime."}</p>
+    `;
+
+    const select = document.getElementById("file-select");
+    if (effectFiles.length === 0) {
+        select.innerHTML = `<option value="">No saved effects</option>`;
+    } else {
+        select.innerHTML = effectFiles.map((file) => (
+            `<option value="${file.id}"${file.id === currentFileId ? " selected" : ""}>${file.name} (${file.id})</option>`
+        )).join("");
+    }
+    select.onchange = async () => {
+        const id = select.value;
+        if (!id || id === currentFileId) return;
+        await loadEffectById(id);
+    };
+
+    paintCurveGraphs(sidebar, schedulePreviewUpdate);
+    bindPathButtons();
+    bindPathShapePanel(schedulePreviewUpdate);
+    bindMotionModePanels(sidebar);
+    bindTextureUpload(schedulePreviewUpdate, setStatus);
+    bindCollisionPanel(schedulePreviewUpdate);
+    bindNoisePanel(schedulePreviewUpdate);
+    syncPathEditorFromConfig();
+    syncMotionViewport(params.motionMode);
+    threePreview?.setRenderSettings(mergeRender(cfg.render));
+}
+
+function syncMotionViewport(mode) {
+    const params = config ? readLiveParams(config.params) : {};
+    const render = config ? readRenderFromUI(config.render) : {};
+    syncGridFluidMode(mode, params, render);
+
+    const spline = mode === "spline";
+    threePreview?.setPathVisible(spline);
+    threePreview?.setSpawnPlaneVisible(mode === "hair");
+    const hint = document.getElementById("motion-hint");
+    if (hint) {
+        if (mode === "spline") {
+            hint.textContent = "Edit the 3D spline in the viewport.";
+        } else if (mode === "boids") {
+            hint.textContent = "Boids — ercang/boids-js flocking (alignment, cohesion, separation, wall avoidance). Best up to ~1024 particles; set Render → Bounds to Box.";
+        } else if (mode === "fluid") {
+            hint.textContent = "Grid volume fluid — orbit with the editor camera. Same viewport as other motion modes.";
+        } else if (mode === "hair") {
+            hint.textContent = "Hair/grass mode — strands grow from a plane surface with wind and gravity bend.";
+        } else {
+            hint.textContent = "Drag the orange anchor to move the emitter origin.";
+        }
+    }
+}
+
+function fluidConfigFromState(params, render) {
+    const curves = config ? readLiveCurves(config.curves) : {};
+    const emitterWorld = threePreview?.getEmitterWorldPos?.() ?? threePreview?.getEmitterRoot?.() ?? [
+        params.emitterX ?? 0,
+        params.emitterY ?? 0,
+        params.emitterZ ?? 0,
+    ];
+    return paramsToFluidConfig(params, render, curves, emitterWorld);
+}
+
+function applyFluidPreviewSettings(cfg) {
+    threePreview?.setFluidRenderSettings({
+        gridSize: fluidGridDim(cfg.gridSize),
+        stepLength: cfg.stepLength ?? 0.025,
+        boundsHalf: cfg.boundsHalf,
+        volumeCenter: cfg.volumeCenter,
+        densityScale: cfg.densityScale ?? 1,
+        volumeOpacity: cfg.volumeOpacity ?? 1,
+        colorTint: cfg.colorTint ?? [1, 1, 1],
+        showVolumeWire: cfg.showVolumeWire ?? false,
+    });
+}
+
+async function syncGridFluidMode(mode, params, render) {
+    if (mode !== "fluid") {
+        await destroyFluidGpu();
+        threePreview?.setFluidMode(false);
+        return;
+    }
+    const cfg = fluidConfigFromState(params, render);
+    threePreview?.setFluidMode(true, fluidGridDim(cfg.gridSize), cfg.stepLength ?? 0.025);
+    applyFluidPreviewSettings(cfg);
+    try {
+        await ensureFluidGpu(params, render);
+    } catch (err) {
+        console.error(err);
+        setStatus(`Fluid: ${err.message}`, true);
+    }
+}
+
+async function ensureFluidGpu(params, render = {}) {
+    const { device } = await ensureSharedContext();
+    const cfg = fluidConfigFromState(params, render);
+    const gridKey = fluidGridDim(cfg.gridSize);
+    if (fluidGpu && fluidGpu.gridSize === gridKey) {
+        fluidGpu.applyConfig(cfg);
+        threePreview?.setFluidMode(true, fluidGridDim(cfg.gridSize), cfg.stepLength ?? 0.025);
+        applyFluidPreviewSettings(cfg);
+        return fluidGpu;
+    }
+    await destroyFluidGpu();
+    fluidGpu = await createFluidGpu(device, cfg);
+    threePreview?.setFluidMode(true, gridKey, cfg.stepLength ?? 0.025);
+    applyFluidPreviewSettings(cfg);
+    time = 0;
+    lastTs = 0;
+    return fluidGpu;
+}
+
+async function destroyFluidGpu() {
+    if (!fluidGpu) return;
+    await fluidGpu.drainReadbacks();
+    fluidGpu.destroy();
+    fluidGpu = null;
+}
+
+function queueSmokeReadback(localGpu, copyIdx, byteScale = 32) {
+    if (!threePreview || localGpu.readbackMapping[copyIdx]) return;
+    const buf = localGpu.readbackBuffers[copyIdx];
+    if (!buf) return;
+    localGpu.readbackMapping[copyIdx] = true;
+    const gridSize = localGpu.gridSize;
+    const byteSize = localGpu.smokeReadbackBytes;
+    const promise = localGpu.device.queue.onSubmittedWorkDone()
+        .then(() => {
+            if (fluidGpu !== localGpu || localGpu.readbackBuffers[copyIdx] !== buf) {
+                return null;
+            }
+            return buf.mapAsync(GPUMapMode.READ);
+        })
+        .then(() => {
+            if (!buf || fluidGpu !== localGpu || localGpu.readbackBuffers[copyIdx] !== buf) {
+                try { buf?.unmap(); } catch { /* destroyed */ }
+                return;
+            }
+            const smoke = new Float32Array(buf.getMappedRange().slice(0, byteSize));
+            buf.unmap();
+            threePreview.updateFluidVolume(smoke, gridSize, byteScale);
+        })
+        .catch((err) => {
+            if (fluidGpu === localGpu) {
+                console.warn("[particle-editor] fluid smoke readback failed:", err);
+            }
+        })
+        .finally(() => {
+            if (fluidGpu !== localGpu) return;
+            localGpu.readbackMapping[copyIdx] = false;
+            localGpu.readbackPromises[copyIdx] = null;
+            localGpu.tryApplyDeferredResize();
+        });
+    localGpu.readbackPromises[copyIdx] = promise;
+}
+
+function bindPathButtons() {
+    const addBtn = document.getElementById("btn-path-add");
+    const remBtn = document.getElementById("btn-path-remove");
+    if (!addBtn || addBtn.dataset.bound) return;
+    addBtn.dataset.bound = "1";
+    remBtn.dataset.bound = "1";
+
+    addBtn.addEventListener("click", () => {
+        threePreview?.addPoint();
+        if (config) config.path = threePreview.getPath();
+        schedulePreviewUpdate();
+    });
+    remBtn.addEventListener("click", () => {
+        threePreview?.removePoint();
+        if (config) config.path = threePreview.getPath();
+        schedulePreviewUpdate();
+    });
+}
+
+function syncPathEditorFromConfig() {
+    if (!threePreview || !config) return;
+    const params = readLiveParams(config.params);
+    const root = [
+        params.emitterX ?? 0,
+        params.emitterY ?? 0,
+        params.emitterZ ?? 0,
+    ];
+    threePreview.syncEmitter(root);
+    threePreview.setPath(config.path, params);
+    threePreview.updateEmitterVisuals();
+}
+
+function paintCurveGraphs(root, onChange) {
+    setupCurveEditors(root, onChange);
+}
+
+function needsGpuRebuild(prev, next) {
+    const prevFluid = prev.params?.motionMode === "fluid";
+    const nextFluid = next.params?.motionMode === "fluid";
+    return prev.maxParticles !== next.maxParticles
+        || (prev.workgroupSize || 64) !== (next.workgroupSize || 64)
+        || prev.simulation.entryPoint !== next.simulation.entryPoint
+        || prev.simulation.wgsl !== next.simulation.wgsl
+        || prevFluid !== nextFluid
+        || (prev.params?.fluidGridSize ?? 64) !== (next.params?.fluidGridSize ?? 64);
+}
+
+function resetSimulation() {
+    if (gpu?.particleBuffer) {
+        gpu.device.queue.writeBuffer(
+            gpu.particleBuffer,
+            0,
+            new ArrayBuffer(gpu.cfg.maxParticles * PARTICLE_BYTES),
+        );
+    }
+    if (fluidGpu) {
+        fluidGpu.resetFields();
+    }
+    time = 0;
+}
+
+function needsSimulationReset(prev, next) {
+    const prevMode = prev.params?.motionMode ?? "velocity";
+    const nextMode = next.params?.motionMode ?? "velocity";
+    if (prevMode !== nextMode) return true;
+
+    if (nextMode === "fluid") {
+        const fluidKeys = [
+            "fluidGridSize", "spawnRadius", "spawnShape", "emitSpread",
+            "emitterX", "emitterY", "emitterZ",
+            "collisionMode", "groundY", "boundsSize", "boundsWidth", "boundsHeight", "boundsDepth", "boundsRadius",
+        ];
+        if (fluidKeys.some((k) => (prev.params?.[k] ?? 0) !== (next.params?.[k] ?? 0))) return true;
+        return JSON.stringify(prev.path?.points) !== JSON.stringify(next.path?.points);
+    }
+
+    const keys = ["emitSpread", "spawnRadius", "spawnShape", "motionMode", "gravity",
+        "emitterX", "emitterY", "emitterZ",
+        "boidsNeighborRadius", "boidsSeparation", "boidsAlignment", "boidsCohesion", "boidsMaxSpeed",
+        "hairLength", "hairSegments", "hairStiffness", "hairGravity", "hairGrowth", "hairRandomTilt",
+        "fluidGridSize",
+        "pathFollowMode", "pathDivergence", "pathDivergenceStart", "pathDivergenceEnd", "pathSpiralTurns", "pathSpiralRadius",
+        "collisionMode", "groundY", "boundsSize", "boundsWidth", "boundsHeight", "boundsDepth", "boundsRadius",
+        "bounce", "groundBounce", "groundFriction", "selfCollide"];
+    if (keys.some((k) => (prev.params?.[k] ?? 0) !== (next.params?.[k] ?? 0))) return true;
+    return JSON.stringify(prev.path?.points) !== JSON.stringify(next.path?.points);
+}
+
+function schedulePreviewUpdate() {
+    clearTimeout(previewDebounce);
+    previewDebounce = setTimeout(async () => {
+        if (!config) return;
+        try {
+            const prev = config;
+            const next = await applyCanonicalShaders(readConfigFromUI(config));
+            const renderSettings = readRenderFromUI(next.render);
+            threePreview?.setRenderSettings(renderSettings);
+            next.render = dedupeRawRender({ ...next.render, ...renderSettings });
+            const restartSim = needsSimulationReset(prev, next);
+            config = next;
+
+            if (!gpu || needsGpuRebuild(prev, next)) {
+                await rebuildFromUI();
+            } else {
+                gpu.cfg = next;
+                syncPathEditorFromConfig();
+                if (restartSim) resetSimulation();
+            }
+            syncMotionViewport(next.params?.motionMode ?? "velocity");
+        } catch (err) {
+            console.error(err);
+            setStatus(err.message, true);
+        }
+    }, 250);
+}
+
+function bindPreviewListeners() {
+    sidebar.addEventListener("input", schedulePreviewUpdate);
+    sidebar.addEventListener("change", schedulePreviewUpdate);
+    for (const el of Object.values(editors)) {
+        el.addEventListener("input", schedulePreviewUpdate);
+    }
+}
+
+function bindTabs() {
+    document.querySelectorAll('.tab').forEach((tab) => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+            tab.classList.add('active');
+            const name = tab.dataset.tab;
+            Object.entries(editors).forEach(([k, el]) => {
+                el.classList.toggle('hidden', k !== name);
+            });
+        });
+    });
+}
+
+function readLiveParams(baseParams) {
+    const params = mergeParams(baseParams);
+    for (const f of PATH_PARAM_FIELDS) {
+        if (params[f.key] === undefined) params[f.key] = f.default;
+    }
+    if (!sidebar) return readExtendedParamsFromUI(params);
+    sidebar.querySelectorAll('[id^="p-"]').forEach((el) => {
+        const key = el.id.slice(2);
+        if (el.tagName === "SELECT") {
+            params[key] = el.value;
+        } else if (el.type === "checkbox") {
+            params[key] = el.checked;
+        } else {
+            const v = parseFloat(String(el.value).replace(",", "."));
+            if (!Number.isNaN(v)) params[key] = v;
+        }
+    });
+    return readNoiseFromUI(readExtendedParamsFromUI(params));
+}
+
+function readLiveCurves(baseCurves) {
+    try {
+        return readCurvesFromSidebar();
+    } catch (_) {
+        return mergeCurves(baseCurves);
+    }
+}
+
+function readConfigFromUI(base) {
+    const cfg = structuredClone(base);
+    cfg.name = document.getElementById('f-name').value.trim() || 'effect';
+    cfg.maxParticles = Math.max(1, parseInt(document.getElementById('f-max').value, 10) || 10000);
+    cfg.workgroupSize = Math.max(1, parseInt(document.getElementById('f-wg').value, 10) || 64);
+    cfg.simulation.entryPoint = document.getElementById('f-entry').value.trim() || 'updateParticles';
+    cfg.simulation.wgsl = editors.sim.value;
+    cfg.render.vertexWgsl = editors.vert.value;
+    cfg.render.fragmentWgsl = editors.frag.value;
+    cfg.params = mergeParams(cfg.params || {});
+    cfg.params = readExtendedParamsFromUI(cfg.params);
+    cfg.curves = readCurvesFromSidebar();
+    cfg.path = mergePath(threePreview ? threePreview.getPath() : cfg.path, cfg.params);
+    cfg.render = readRenderFromUI(cfg.render);
+    cfg.params = readNoiseFromUI(cfg.params);
+    sidebar.querySelectorAll('[id^="p-"]').forEach((el) => {
+        const key = el.id.slice(2);
+        if (el.tagName === "SELECT") {
+            cfg.params[key] = el.value;
+        } else if (el.type === "checkbox") {
+            cfg.params[key] = el.checked;
+        } else {
+            const v = parseFloat(el.value);
+            if (!Number.isNaN(v)) cfg.params[key] = v;
+        }
+    });
+    return cfg;
+}
+
+function fillEditors(cfg) {
+    editors.sim.value = (cfg.simulation?.wgsl || '').trim();
+    editors.vert.value = (cfg.render?.vertexWgsl || '').trim();
+    editors.frag.value = (cfg.render?.fragmentWgsl || '').trim();
+}
+
+function resetCamera() {
+    threePreview?.resetCamera();
+}
+
+async function ensureSharedContext() {
+    if (sharedContext) return sharedContext;
+    if (!navigator.gpu) throw new Error('WebGPU not supported in this browser');
+
+    const adapter = await navigator.gpu.requestAdapter();
+    const limits = fluidDeviceLimits(192);
+    const device = await adapter.requestDevice({ requiredLimits: limits });
+    device.addEventListener("uncapturederror", (e) => {
+        console.error("[particle-editor] WebGPU:", e.error?.message || e.error);
+    });
+    sharedContext = { device };
+    return sharedContext;
+}
+
+function destroyGpuResources(resources) {
+    if (!resources) return;
+    resources.particleBuffer?.destroy();
+    resources.readbackBuffers?.forEach((buf) => buf.destroy());
+    resources.simUniformBuffer?.destroy();
+    resources.pathBuffer?.destroy();
+}
+
+async function teardownGpuResources(resources) {
+    if (!resources) return;
+    if (resources.readbackPromises?.length) {
+        await Promise.all(resources.readbackPromises.map((p) => p.catch(() => {})));
+    }
+    resources.readbackBuffers?.forEach((buf) => {
+        try { buf.unmap(); } catch { /* already unmapped or destroyed */ }
+    });
+    resources.readbackMapping = [false, false];
+    destroyGpuResources(resources);
+}
+
+function destroySharedContext() {
+    const oldGpu = gpu;
+    gpu = null;
+    Promise.all([destroyFluidGpu(), teardownGpuResources(oldGpu)]).then(() => {
+        if (sharedContext) {
+            sharedContext.device.destroy();
+            sharedContext = null;
+        }
+        threePreview?.dispose();
+        threePreview = null;
+    });
+}
+
+async function createGpu(cfg) {
+    const { device } = await ensureSharedContext();
+
+    const count = cfg.maxParticles;
+    const wg = cfg.workgroupSize || 64;
+    const dispatch = calcDispatch(count, wg);
+    const particleBytes = count * PARTICLE_BYTES;
+    const gridSize = cfg.params?.fluidGridSize ?? 32;
+
+    if (cfg.params?.motionMode === "fluid") {
+        return { cfg, isFluid: true };
+    }
+
+    const particleBuffer = device.createBuffer({
+        size: particleBytes,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+    });
+
+    const readbackBuffers = [0, 1].map((i) => device.createBuffer({
+        label: `readback${i}`,
+        size: particleBytes,
+        usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+    }));
+
+    const simUniformBuffer = device.createBuffer({ size: SIM_UNIFORM_BYTES, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    const pathBuffer = device.createBuffer({ size: PATH_BUFFER_BYTES, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+
+    const base = {
+        device, cfg, particleBuffer, readbackBuffers, simUniformBuffer, pathBuffer,
+        dispatchX: dispatch.x, dispatchY: dispatch.y,
+        readbackWrite: 0,
+        readbackMapping: [false, false],
+        readbackPromises: [],
+    };
+
+    const mpm = createMpmBuffers(device, count, gridSize);
+    const mpmGpu = await setupMpmGpu(device, cfg, {
+        simUniformBuffer,
+        particleBuffer,
+        pathBuffer,
+        ...mpm,
+    }, SIM_UNIFORM_BYTES);
+
+    return {
+        ...base,
+        ...mpm,
+        ...mpmGpu,
+    };
+}
+
+function queueReadback(localGpu, copyIdx) {
+    if (!threePreview || localGpu.readbackMapping[copyIdx]) return;
+    localGpu.readbackMapping[copyIdx] = true;
+    const buf = localGpu.readbackBuffers[copyIdx];
+    const promise = localGpu.device.queue.onSubmittedWorkDone().then(() => buf.mapAsync(GPUMapMode.READ)).then(() => {
+        if (gpu !== localGpu) {
+            try { buf.unmap(); } catch { /* torn down */ }
+            localGpu.readbackMapping[copyIdx] = false;
+            return;
+        }
+        const mapped = buf.getMappedRange();
+        threePreview.updateParticles(new Float32Array(mapped), localGpu.cfg.maxParticles);
+        buf.unmap();
+        localGpu.readbackMapping[copyIdx] = false;
+    }).catch((err) => {
+        console.warn("[particle-editor] readback failed:", err);
+        localGpu.readbackMapping[copyIdx] = false;
+    });
+    localGpu.readbackPromises[copyIdx] = promise;
+}
+
+function frame(ts) {
+    requestAnimationFrame(frame);
+    if (document.hidden) return;
+
+    const motionMode = config?.params?.motionMode ?? "velocity";
+    if (motionMode === "fluid") {
+        if (!threePreview) return;
+
+        if (!fluidGpu) {
+            ensureFluidGpu(readLiveParams(config.params), readRenderFromUI(config.render)).catch((err) => {
+                console.error("[particle-editor] fluid init:", err);
+                setStatus(`Fluid: ${err.message}`, true);
+            });
+        } else {
+            const liveParams = readLiveParams(config.params);
+            const render = readRenderFromUI(config.render);
+            const fluidCfg = fluidConfigFromState(liveParams, render);
+
+            fluidGpu.applyConfig(fluidCfg);
+            applyFluidPreviewSettings(fluidCfg);
+            fluidGpu.tryApplyDeferredResize();
+
+            if (previewRunning && !fluidGpu.isResizing()) {
+                const frameDt = fluidFrameDt((ts - lastTs) / 1000);
+                lastTs = ts;
+                time += frameDt * (Number(liveParams.fluidSpeed) || 1);
+
+                const speed = Number(liveParams.fluidSpeed) || 1;
+                const subSteps = Math.min(2, Math.max(1, Math.round(speed)));
+                const subDt = frameDt * speed / subSteps;
+                const copyIdx = fluidGpu.pickReadbackIndex();
+
+                for (let i = 0; i < subSteps; i++) {
+                    fluidGpu.step({
+                        dt: subDt,
+                        time: time + i * subDt,
+                        config: fluidCfg,
+                        readbackIndex: i === subSteps - 1 ? copyIdx : -1,
+                    });
+                }
+                if (copyIdx >= 0) {
+                    queueSmokeReadback(fluidGpu, copyIdx, fluidCfg.byteScale ?? 32);
+                }
+            } else if (!lastTs) {
+                lastTs = ts;
+            }
+
+            threePreview.applyPathParams(liveParams);
+            threePreview.updateEmitterVisuals();
+            threePreview.setCollisionBounds(liveParams, readShowBoundsFromUI());
+        }
+
+        threePreview.render();
+        return;
+    }
+
+    if (!gpu?.pipelines) return;
+
+    const frameDt = previewRunning ? fluidFrameDt((ts - lastTs) / 1000) : 0;
+    if (previewRunning) {
+        lastTs = ts;
+        time += frameDt;
+    }
+
+    const { device, cfg, simUniformBuffer, pathBuffer, particleBuffer, readbackBuffers,
+        pipelines, bindGroup, dispatchX, dispatchY } = gpu;
+
+    const liveParams = readLiveParams(cfg.params);
+    const liveCurves = readLiveCurves(cfg.curves);
+    const livePath = mergePath(threePreview?.getPath() ?? cfg.path, liveParams);
+    const emitterRoot = threePreview?.getEmitterRoot?.() ?? [
+        liveParams.emitterX ?? 0,
+        liveParams.emitterY ?? 0,
+        liveParams.emitterZ ?? 0,
+    ];
+    const { path: gpuPath, emitterWorld } = normalizePathAnchor(livePath, emitterRoot);
+    const uniformBase = {
+        count: cfg.maxParticles,
+        time,
+        emitterPos: emitterWorld,
+        params: liveParams,
+        curves: liveCurves,
+    };
+
+    device.queue.writeBuffer(simUniformBuffer, 0, packSimUniforms({ ...uniformBase, dt: frameDt }));
+    device.queue.writeBuffer(pathBuffer, 0, packPathBuffer(gpuPath));
+
+    const enc = device.createCommandEncoder();
+    const updatePass = enc.beginComputePass({ label: "updateParticles" });
+    updatePass.setPipeline(pipelines.updateParticles);
+    updatePass.setBindGroup(0, bindGroup);
+    updatePass.dispatchWorkgroups(dispatchX, dispatchY);
+    updatePass.end();
+
+    device.queue.submit([enc.finish()]);
+
+    let copyIdx = -1;
+    if (threePreview) {
+        copyIdx = gpu.readbackWrite;
+        if (gpu.readbackMapping[copyIdx]) {
+            copyIdx = 1 - copyIdx;
+        }
+        if (!gpu.readbackMapping[copyIdx]) {
+            const encRead = device.createCommandEncoder();
+            encRead.copyBufferToBuffer(
+                particleBuffer, 0, readbackBuffers[copyIdx], 0, cfg.maxParticles * PARTICLE_BYTES,
+            );
+            device.queue.submit([encRead.finish()]);
+            gpu.readbackWrite = 1 - copyIdx;
+        } else {
+            copyIdx = -1;
+        }
+    }
+
+    if (threePreview) {
+        threePreview.applyPathParams(liveParams);
+        threePreview.updateEmitterVisuals();
+        threePreview.setRotationCurve(liveCurves.rotation);
+        threePreview.setColorCurve(liveCurves.color);
+        threePreview.setMotionSettings(liveParams);
+        threePreview.setCollisionBounds(liveParams, readShowBoundsFromUI());
+
+        if (copyIdx >= 0) {
+            queueReadback(gpu, copyIdx);
+        }
+
+        threePreview.render();
+    }
+}
+
+async function rebuildFromUI() {
+    try {
+        setStatus('Rebuilding…');
+        const next = await applyCanonicalShaders(readConfigFromUI(config));
+        const renderSettings = readRenderFromUI(next.render);
+        next.render = dedupeRawRender({ ...next.render, ...renderSettings });
+        const oldGpu = gpu;
+        gpu = null;
+        await destroyFluidGpu();
+        await teardownGpuResources(oldGpu);
+        gpu = await createGpu(next);
+        config = next;
+        time = 0;
+        lastTs = 0;
+        fillEditors(config);
+        threePreview?.setRenderSettings(renderSettings);
+        if (next.params?.motionMode === "fluid") {
+            await ensureFluidGpu(next.params, renderSettings);
+        } else {
+            threePreview?.setFluidMode(false);
+        }
+        syncMotionViewport(next.params?.motionMode ?? "velocity");
+        setStatus(`Running "${config.name}" — ${config.maxParticles.toLocaleString()} particles`);
+    } catch (err) {
+        console.error(err);
+        setStatus(err.message, true);
+    }
+}
+
+async function loadConfig(json, fileId = null) {
+    const migrated = migrateEffect(json);
+    await applyCanonicalShaders(migrated);
+    const renderMeta = mergeRender(migrated.render);
+    const editorRender = playCanvasRenderToRaw(migrated.render);
+    const params = mergeParams(migrated.params);
+    for (const f of PATH_PARAM_FIELDS) {
+        if (params[f.key] === undefined) params[f.key] = f.default;
+    }
+    const emitterRoot = [
+        params.emitterX ?? 0,
+        params.emitterY ?? 0,
+        params.emitterZ ?? 0,
+    ];
+    const canonical = canonicalizeStoredPath(migrated.path, params, emitterRoot);
+    config = {
+        ...structuredClone(migrated),
+        params: canonical.params,
+        curves: mergeCurves(migrated.curves),
+        path: canonical.path,
+        render: { ...renderMeta, ...editorRender },
+    };
+    if (threePreview) {
+        threePreview.syncEmitter(canonical.emitterWorld);
+    }
+    currentFileId = fileId;
+    fillEditors(config);
+    buildSidebar(config);
+    await rebuildFromUI();
+}
+
+async function refreshFileList() {
+    const res = await fetch("/api/particle-effects");
+    if (!res.ok) throw new Error(`Failed to list effects (${res.status})`);
+    const data = await res.json();
+    effectFiles = data.effects || [];
+}
+
+async function loadEffectById(id) {
+    const res = await fetch(`/api/particle-effects/${encodeURIComponent(id)}`);
+    if (!res.ok) throw new Error(`Failed to load "${id}" (${res.status})`);
+    await loadConfig(await res.json(), id);
+    updateTemplateUiHints();
+    setStatus(`Loaded "${id}"`);
+}
+
+let canonicalPlayCanvasRender = null;
+let canonicalSimulation = null;
+
+async function ensureCanonicalRender() {
+    if (!canonicalPlayCanvasRender) {
+        const res = await fetch("/particles/canonical-render.json");
+        if (!res.ok) throw new Error("Failed to load canonical render WGSL");
+        canonicalPlayCanvasRender = await res.json();
+    }
+    return canonicalPlayCanvasRender;
+}
+
+async function ensureCanonicalSimulation() {
+    if (!canonicalSimulation) {
+        const res = await fetch("/particles/canonical-simulation.json");
+        if (!res.ok) throw new Error("Failed to load canonical simulation WGSL");
+        canonicalSimulation = await res.json();
+    }
+    return canonicalSimulation;
+}
+
+async function applyCanonicalShaders(cfg) {
+    const [canonicalRender, canonicalSim] = await Promise.all([
+        ensureCanonicalRender(),
+        ensureCanonicalSimulation(),
+    ]);
+    cfg.simulation = {
+        entryPoint: cfg.simulation?.entryPoint || canonicalSim.entryPoint,
+        wgsl: canonicalSim.wgsl,
+    };
+    cfg.render = {
+        ...cfg.render,
+        wgslShared: canonicalRender.wgslShared,
+        vertexWgsl: canonicalRender.vertexWgsl,
+        fragmentWgsl: canonicalRender.fragmentWgsl,
+    };
+    return cfg;
+}
+
+async function exportPlayCanvasConfig() {
+    const raw = readConfigFromUI(config);
+    const renderMeta = mergeRender(readRenderFromUI(raw.render));
+    const canonicalSim = await ensureCanonicalSimulation();
+    const emitterRoot = threePreview?.getEmitterRoot?.() ?? [
+        raw.params.emitterX ?? 0,
+        raw.params.emitterY ?? 0,
+        raw.params.emitterZ ?? 0,
+    ];
+    const canonical = canonicalizeStoredPath(raw.path, raw.params, emitterRoot);
+    // WGSL is injected on load/save by applyCanonicalShaders — omit from save payload.
+    return {
+        name: raw.name,
+        version: raw.version,
+        maxParticles: raw.maxParticles,
+        workgroupSize: raw.workgroupSize,
+        params: canonical.params,
+        curves: raw.curves,
+        path: canonical.path,
+        simulation: {
+            entryPoint: canonicalSim.entryPoint,
+        },
+        render: renderMeta,
+    };
+}
+
+async function saveEffectAsNew(defaultName = "my_effect", promptMessage = null) {
+    const name = prompt(
+        promptMessage || "New effect name:",
+        defaultName,
+    );
+    if (!name?.trim()) return false;
+
+    const effect = await exportPlayCanvasConfig();
+    effect.name = name.trim();
+
+    const res = await fetch("/api/particle-effects/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ effect }),
+    });
+    if (!res.ok) throw new Error(await readApiError(res));
+    const saved = await res.json();
+    await refreshFileList();
+    await loadEffectById(saved.id);
+    setStatus(`Created "${saved.id}.json"`);
+    return true;
+}
+
+async function readApiError(res) {
+    const text = await res.text();
+    try {
+        const json = JSON.parse(text);
+        if (json?.error) return json.error;
+    } catch (_) {}
+    if (text.includes("PayloadTooLargeError") || text.includes("entity too large")) {
+        return "Save payload too large for the server — restart the server after updating.";
+    }
+    const plain = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    return plain.slice(0, 240) || `Request failed (${res.status})`;
+}
+
+function updateTemplateUiHints() {
+    const saveBtn = document.getElementById("btn-save");
+    const deleteBtn = document.getElementById("btn-delete");
+    const isTemplate = TEMPLATE_EFFECT_IDS.has(currentFileId);
+    if (saveBtn) {
+        saveBtn.textContent = isTemplate ? "Save as new…" : "Save";
+        saveBtn.title = isTemplate
+            ? "basic is a read-only template — saves a copy under a new name"
+            : "";
+    }
+    if (deleteBtn) {
+        deleteBtn.disabled = isTemplate;
+        deleteBtn.title = isTemplate ? "Templates cannot be deleted" : "";
+    }
+}
+
+async function saveCurrentEffect() {
+    if (TEMPLATE_EFFECT_IDS.has(currentFileId)) {
+        await saveEffectAsNew(
+            "my_effect",
+            '"basic" is a read-only template and cannot be overwritten.\n\nEnter a name for your new effect:',
+        );
+        return;
+    }
+
+    const effect = await exportPlayCanvasConfig();
+    const res = await fetch("/api/particle-effects/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ effect, previousId: currentFileId }),
+    });
+    if (!res.ok) throw new Error(await readApiError(res));
+    const saved = await res.json();
+    currentFileId = saved.id;
+    const emitterRoot = threePreview?.getEmitterRoot?.() ?? [0, 0, 0];
+    const canonical = canonicalizeStoredPath(effect.path, mergeParams(effect.params), emitterRoot);
+    config = {
+        ...config,
+        ...effect,
+        params: canonical.params,
+        curves: mergeCurves(effect.curves),
+        path: canonical.path,
+        render: { ...mergeRender(effect.render), ...playCanvasRenderToRaw(effect.render) },
+    };
+    syncPathEditorFromConfig();
+    await refreshFileList();
+    buildSidebar(config);
+    setStatus(`Saved "${saved.id}.json"`);
+}
+
+async function createNewEffect() {
+    await saveEffectAsNew("my_effect");
+}
+
+async function deleteCurrentEffect() {
+    if (!currentFileId) {
+        setStatus("Nothing to delete — effect is not saved yet", true);
+        return;
+    }
+    if (TEMPLATE_EFFECT_IDS.has(currentFileId)) {
+        setStatus(`"${currentFileId}" is a read-only template and cannot be deleted`, true);
+        return;
+    }
+    if (!confirm(`Delete "${currentFileId}.json"?`)) return;
+    const deletedId = currentFileId;
+    const res = await fetch("/api/particle-effects/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: deletedId }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    await refreshFileList();
+    const nextId = effectFiles[0]?.id || "basic";
+    await loadEffectById(nextId);
+    setStatus(`Deleted "${deletedId}"`);
+}
+
+document.getElementById('btn-save').addEventListener('click', async () => {
+    try {
+        await saveCurrentEffect();
+    } catch (err) {
+        console.error(err);
+        setStatus(err.message, true);
+    }
+});
+
+const pauseBtn = document.getElementById('btn-pause');
+pauseBtn.addEventListener('click', () => {
+    previewRunning = !previewRunning;
+    pauseBtn.textContent = previewRunning ? 'Pause preview' : 'Resume preview';
+    setStatus(previewRunning ? 'Preview resumed' : 'Preview paused');
+});
+
+document.getElementById('btn-new').addEventListener('click', async () => {
+    try {
+        await createNewEffect();
+    } catch (err) {
+        console.error(err);
+        setStatus(err.message, true);
+    }
+});
+
+document.getElementById('btn-delete').addEventListener('click', async () => {
+    try {
+        await deleteCurrentEffect();
+    } catch (err) {
+        console.error(err);
+        setStatus(err.message, true);
+    }
+});
+
+document.getElementById('btn-export').addEventListener('click', async () => {
+    const out = await exportPlayCanvasConfig();
+    const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${out.name}.json`;
+    a.click();
+    setStatus(`Downloaded ${out.name}.json`);
+});
+
+document.getElementById('import-file').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+        const json = JSON.parse(await file.text());
+        currentFileId = null;
+        await loadConfig(json, null);
+        setStatus(`Imported ${file.name} — save to persist on server`);
+    } catch (err) {
+        console.error(err);
+        setStatus(err.message, true);
+    }
+    e.target.value = '';
+});
+
+bindTabs();
+threePreview = createThreePreview(previewWrap, {
+    onPathChange: () => {
+        if (!config || !threePreview) return;
+        config.path = threePreview.getPath();
+        const w = threePreview.getEmitterWorldPos();
+        config.params = {
+            ...config.params,
+            emitterX: w[0],
+            emitterY: w[1],
+            emitterZ: w[2],
+        };
+        resetSimulation();
+        schedulePreviewUpdate();
+    },
+});
+window.addEventListener("particle-motion-mode", async (e) => {
+    if (config) {
+        config.params = { ...config.params, motionMode: e.detail.mode };
+    }
+    syncMotionViewport(e.detail.mode);
+    schedulePreviewUpdate();
+});
+bindPreviewListeners();
+document.getElementById('btn-reset-camera').addEventListener('click', () => {
+    resetCamera();
+    setStatus('Camera reset');
+});
+window.addEventListener('pagehide', destroySharedContext);
+requestAnimationFrame(frame);
+
+try {
+    await Promise.all([ensureCanonicalRender(), ensureCanonicalSimulation()]);
+    await refreshFileList();
+    const startId = effectFiles.some((f) => f.id === "basic") ? "basic" : effectFiles[0]?.id;
+    if (!startId) throw new Error("No particle effects found");
+    await loadEffectById(startId);
+} catch (err) {
+    console.error(err);
+    setStatus('Failed to load effects — is the server running?', true);
+}
+</script>
+</body>
+</html>

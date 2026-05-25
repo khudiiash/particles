@@ -1,0 +1,34 @@
+{
+	"name": "@khudiiash/gpu-particle-editor",
+	"version": "0.1.0",
+	"description": "WebGPU particle editor, effect library, and Express integration",
+	"license": "MIT",
+	"main": "src/index.js",
+	"exports": {
+		".": "./src/index.js",
+		"./public/*": "./public/*",
+		"./particles/*": "./public/particles/*"
+	},
+	"files": [
+		"public",
+		"src",
+		"scripts",
+		"bin"
+	],
+	"bin": {
+		"gpu-particle-editor": "./bin/dev-server.js"
+	},
+	"scripts": {
+		"start": "node bin/dev-server.js",
+		"sync:render": "node scripts/sync-canonical-render.mjs",
+		"sync:simulation": "node scripts/sync-canonical-simulation.mjs",
+		"inject:noise": "node scripts/inject-particle-noise.mjs",
+		"inject:shapes": "node scripts/inject-particle-shape-wgsl.mjs"
+	},
+	"engines": {
+		"node": ">=18.17.0"
+	},
+	"dependencies": {
+		"express": "^4.19.2"
+	}
+}

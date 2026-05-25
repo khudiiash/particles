@@ -1,0 +1,218 @@
+{
+  "version": 2,
+  "name": "grass",
+  "maxParticles": 10000,
+  "workgroupSize": 64,
+  "params": {
+    "gravity": 0,
+    "drag": 0,
+    "spawnShape": "plane",
+    "spawnRadius": 5,
+    "emitSpread": 0,
+    "motionMode": "hair",
+    "pathTension": 0.5,
+    "pathDivergence": 0.25,
+    "pathDivergenceStart": 1,
+    "pathDivergenceEnd": 0.2,
+    "pathFollowMode": "tube",
+    "pathSpiralTurns": 1.5,
+    "pathSpiralRadius": 0.4,
+    "collisionMode": "none",
+    "groundY": 0,
+    "boundsSize": 1,
+    "bounce": 0.35,
+    "groundFriction": 0.2,
+    "selfCollide": 0,
+    "boidsNeighborRadius": 0.8,
+    "boidsSeparation": 1.2,
+    "boidsAlignment": 0.8,
+    "boidsCohesion": 0.6,
+    "boidsMaxSpeed": 2,
+    "hairLength": 5,
+    "hairSegments": 8,
+    "hairStiffness": 0.1,
+    "hairGravity": 1,
+    "hairGrowth": 0,
+    "hairRandomTilt": 0.5,
+    "fluidGridSize": 32,
+    "fluidStiffness": 30,
+    "fluidRestDensity": 1.5,
+    "fluidViscosity": 0.1,
+    "emitterX": 0,
+    "emitterY": 0,
+    "emitterZ": 0
+  },
+  "curves": {
+    "life": {
+      "keys": [
+        {
+          "t": 0,
+          "min": 60,
+          "max": 60
+        },
+        {
+          "t": 1,
+          "min": 60,
+          "max": 60
+        }
+      ],
+      "random": false,
+      "easing": "linear",
+      "advanced": false
+    },
+    "size": {
+      "keys": [
+        {
+          "t": 0,
+          "min": 0.125,
+          "max": 0.125
+        },
+        {
+          "t": 1,
+          "min": 0.125,
+          "max": 0.125
+        }
+      ],
+      "random": false,
+      "easing": "linear",
+      "advanced": false
+    },
+    "opacity": {
+      "keys": [
+        {
+          "t": 0,
+          "min": 1,
+          "max": 1
+        },
+        {
+          "t": 1,
+          "min": 1,
+          "max": 1
+        }
+      ],
+      "random": false,
+      "easing": "linear",
+      "advanced": false
+    },
+    "color": {
+      "keys": [
+        {
+          "t": 0,
+          "color": "#000000"
+        },
+        {
+          "t": 1,
+          "color": "#81d600"
+        }
+      ],
+      "random": false,
+      "randomBetween": false,
+      "easing": "linear",
+      "advanced": true
+    },
+    "velocity": {
+      "random": true,
+      "easing": "linear",
+      "channels": {
+        "x": {
+          "keys": [
+            {
+              "t": 0,
+              "min": -0.5,
+              "max": 0.5
+            },
+            {
+              "t": 1,
+              "min": 0,
+              "max": 0
+            }
+          ]
+        },
+        "y": {
+          "keys": [
+            {
+              "t": 0,
+              "min": 1,
+              "max": 3
+            },
+            {
+              "t": 1,
+              "min": -1,
+              "max": -1
+            }
+          ]
+        },
+        "z": {
+          "keys": [
+            {
+              "t": 0,
+              "min": -0.5,
+              "max": 0.5
+            },
+            {
+              "t": 1,
+              "min": 0,
+              "max": 0
+            }
+          ]
+        }
+      }
+    },
+    "rotation": {
+      "keys": [
+        {
+          "t": 0,
+          "min": 0,
+          "max": 0
+        },
+        {
+          "t": 1,
+          "min": 0,
+          "max": 0
+        }
+      ],
+      "random": false,
+      "easing": "linear",
+      "advanced": false
+    }
+  },
+  "simulation": {
+    "entryPoint": "updateParticles"
+  },
+  "render": {
+    "blendMode": "normal",
+    "depthSoftness": 1,
+    "depthWrite": false,
+    "depthSort": true,
+    "castShadow": true,
+    "receiveShadow": true,
+    "useLighting": true,
+    "lightIntensity": 1,
+    "particleRotation": 0,
+    "stretchAlongMotion": 0,
+    "colorMap": "",
+    "colorMapMix": 1,
+    "alphaCutoff": 0.1
+  },
+  "path": {
+    "points": [
+      {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      {
+        "x": 0,
+        "y": 3,
+        "z": 0
+      }
+    ],
+    "tension": 0.5,
+    "divergence": 0.25,
+    "divergenceStart": 1,
+    "divergenceEnd": 0.2,
+    "followMode": "tube",
+    "spiralTurns": 1.5,
+    "spiralRadius": 0.4
+  }
+}

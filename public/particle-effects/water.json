@@ -1,0 +1,241 @@
+{
+  "name": "water",
+  "version": 2,
+  "maxParticles": 32000,
+  "workgroupSize": 32,
+  "params": {
+    "gravity": 1,
+    "drag": 0,
+    "spawnShape": "box",
+    "spawnRadius": 0,
+    "emitSpread": 0,
+    "motionMode": "fluid",
+    "pathTension": 0.5,
+    "pathDivergence": 0.25,
+    "pathDivergenceStart": 1,
+    "pathDivergenceEnd": 0.2,
+    "pathFollowMode": "tube",
+    "pathSpiralTurns": 1.5,
+    "pathSpiralRadius": 0.4,
+    "collisionMode": "box",
+    "groundY": 0,
+    "boundsSize": 1,
+    "boundsWidth": 5,
+    "boundsHeight": 5,
+    "boundsDepth": 5,
+    "boundsRadius": 1,
+    "bounce": 0,
+    "groundFriction": 0.2,
+    "selfCollide": 0,
+    "boidsNeighborRadius": 1.2,
+    "boidsSeparation": 2.2,
+    "boidsAlignment": 0.9,
+    "boidsCohesion": 0.45,
+    "boidsMaxSpeed": 2,
+    "hairLength": 0.6,
+    "hairSegments": 8,
+    "hairStiffness": 0.78,
+    "hairGravity": 1,
+    "hairGrowth": 0.65,
+    "hairRandomTilt": 0.35,
+    "fluidGridSize": 64,
+    "fluidStiffness": 100,
+    "fluidRestDensity": 1.5,
+    "fluidViscosity": 0.5,
+    "noiseEnabled": false,
+    "noiseType": "simplex3d",
+    "noiseFrequency": 1,
+    "noiseAmplitude": 0,
+    "noiseSpeed": 1,
+    "noiseOctaves": 1,
+    "noiseSeed": 0,
+    "noiseTargetVelocity": false,
+    "noiseTargetColor": false,
+    "noiseTargetSize": false,
+    "noiseTargetOpacity": false,
+    "noiseTargetPosition": false,
+    "emitterX": 0,
+    "emitterY": 8.127651344736273,
+    "emitterZ": 0,
+    "boundsHalfX": 5,
+    "boundsHalfY": 5,
+    "boundsHalfZ": 5
+  },
+  "curves": {
+    "life": {
+      "keys": [
+        {
+          "t": 0,
+          "min": 0,
+          "max": 0
+        },
+        {
+          "t": 1,
+          "min": 0,
+          "max": 0
+        }
+      ],
+      "random": false,
+      "easing": "linear",
+      "advanced": false
+    },
+    "size": {
+      "keys": [
+        {
+          "t": 0,
+          "min": 0.2,
+          "max": 0.2
+        },
+        {
+          "t": 1,
+          "min": 0.2,
+          "max": 0.2
+        }
+      ],
+      "random": false,
+      "easing": "linear",
+      "advanced": false
+    },
+    "opacity": {
+      "keys": [
+        {
+          "t": 0,
+          "min": 0.2,
+          "max": 0.2
+        },
+        {
+          "t": 1,
+          "min": 0.2,
+          "max": 0.2
+        }
+      ],
+      "random": false,
+      "easing": "linear",
+      "advanced": false
+    },
+    "color": {
+      "keys": [
+        {
+          "t": 0,
+          "color": "#04abcd"
+        },
+        {
+          "t": 1,
+          "color": "#1c04cd"
+        }
+      ],
+      "random": false,
+      "randomBetween": false,
+      "easing": "linear",
+      "advanced": true
+    },
+    "velocity": {
+      "random": true,
+      "easing": "linear",
+      "channels": {
+        "x": {
+          "keys": [
+            {
+              "t": 0,
+              "min": -0.5,
+              "max": 0.5
+            },
+            {
+              "t": 1,
+              "min": 0,
+              "max": 0
+            }
+          ]
+        },
+        "y": {
+          "keys": [
+            {
+              "t": 0,
+              "min": 1,
+              "max": 3
+            },
+            {
+              "t": 1,
+              "min": -1,
+              "max": -1
+            }
+          ]
+        },
+        "z": {
+          "keys": [
+            {
+              "t": 0,
+              "min": -0.5,
+              "max": 0.5
+            },
+            {
+              "t": 1,
+              "min": 0,
+              "max": 0
+            }
+          ]
+        }
+      }
+    },
+    "rotation": {
+      "keys": [
+        {
+          "t": 0,
+          "min": 0,
+          "max": 0
+        },
+        {
+          "t": 1,
+          "min": 0,
+          "max": 0
+        }
+      ],
+      "random": false,
+      "easing": "linear",
+      "advanced": false
+    }
+  },
+  "path": {
+    "points": [
+      {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      {
+        "x": 0,
+        "y": -5.1276513447362735,
+        "z": 0
+      }
+    ],
+    "tension": 0.5,
+    "divergence": 0.25,
+    "divergenceStart": 1,
+    "divergenceEnd": 0.2,
+    "followMode": "tube",
+    "spiralTurns": 1.5,
+    "spiralRadius": 0.4
+  },
+  "simulation": {
+    "entryPoint": "updateParticles"
+  },
+  "render": {
+    "blendMode": "additiveAlpha",
+    "depthSoftness": 0,
+    "depthWrite": true,
+    "depthSort": true,
+    "castShadow": true,
+    "receiveShadow": true,
+    "useLighting": true,
+    "lightIntensity": 1,
+    "particleRotation": 0,
+    "stretchAlongMotion": 0,
+    "colorMap": "particle-textures/circle.png",
+    "colorMapMix": 1,
+    "alphaCutoff": 0.05,
+    "particleShape": "disc",
+    "shapeWidth": 1,
+    "shapeHeight": 1,
+    "shapeDepth": 1
+  }
+}
