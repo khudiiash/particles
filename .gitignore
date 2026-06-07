@@ -3,3 +3,8 @@ node_modules/
 *.log
 .env
 .env.local
+
+# Build artifacts (rebuilt on publish / deploy)
+dist/
+packages/*/dist/
+apps/*/dist/

@@ -116,6 +116,41 @@ function checkboxHtml(id, label, checked, extraClass = "", extraAttrs = "") {
     return `<label class="chk${extraClass ? ` ${extraClass}` : ""}"${extraAttrs}><input id="${id}" type="checkbox"${checked ? " checked" : ""} /> ${label}</label>`;
 }
 
+/**
+ * Texture persistence backend. Defaults to the legacy Express REST API; the
+ * serverless editor injects a client-side (localStorage) backend instead.
+ */
+const serverTextureBackend = {
+	async list() {
+		const res = await fetch("/api/particle-textures");
+		if (!res.ok) throw new Error(await res.text());
+		const { textures } = await res.json();
+		return textures;
+	},
+	async upload(file) {
+		const res = await fetch(
+			`/api/particle-textures/upload?filename=${encodeURIComponent(file.name)}`,
+			{
+				method: "POST",
+				headers: { "Content-Type": file.type || "application/octet-stream" },
+				body: file,
+			},
+		);
+		if (!res.ok) {
+			const text = await res.text();
+			throw new Error(text.replace(/<[^>]+>/g, " ").trim() || `Upload failed (${res.status})`);
+		}
+		return res.json();
+	},
+};
+
+let textureBackend = serverTextureBackend;
+
+/** Override how the texture picker lists/uploads images (e.g. client storage). */
+export function setTextureBackend(backend) {
+	textureBackend = backend || serverTextureBackend;
+}
+
 export function updateColorMapLabel(path) {
     const label = document.getElementById("r-colorMapLabel");
     if (!label) return;
@@ -290,9 +325,7 @@ export async function bindTextureUpload(onChange, onStatus) {
         const current = selected || hidden?.value || "";
         updateColorMapLabel(current);
         try {
-            const res = await fetch("/api/particle-textures");
-            if (!res.ok) throw new Error(await res.text());
-            const { textures } = await res.json();
+            const textures = await textureBackend.list();
             select.innerHTML = `<option value="">— none —</option>${textures.map((t) =>
                 `<option value="${t.path}"${t.path === current ? " selected" : ""}>${t.id}</option>`).join("")}`;
         } catch (err) {
@@ -316,19 +349,7 @@ export async function bindTextureUpload(onChange, onStatus) {
         chooseBtn.disabled = true;
 
         try {
-            const res = await fetch(
-                `/api/particle-textures/upload?filename=${encodeURIComponent(file.name)}`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": file.type || "application/octet-stream" },
-                    body: file,
-                },
-            );
-            if (!res.ok) {
-                const text = await res.text();
-                throw new Error(text.replace(/<[^>]+>/g, " ").trim() || `Upload failed (${res.status})`);
-            }
-            const saved = await res.json();
+            const saved = await textureBackend.upload(file);
             if (hidden) hidden.value = saved.path;
             updateColorMapLabel(saved.path);
             await refreshList(saved.path);

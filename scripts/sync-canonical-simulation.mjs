@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const photonRoot = process.env.PHOTON_ROOT || path.resolve(__dirname, "../../Photon");
 const sourcePath = path.join(photonRoot, "scripts/effects/gpu-particles/defaultEffect.js");
-const outPath = path.resolve(__dirname, "../public/particles/canonical-simulation.json");
+const outPath = path.resolve(__dirname, "../packages/core/wgsl/simulation.json");
 
 const source = fs.readFileSync(sourcePath, "utf8");
 const marker = "simulation: {";

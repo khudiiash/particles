@@ -1,0 +1,56 @@
+{
+	"name": "@khudiiash/particles-core",
+	"version": "0.2.0",
+	"description": "Shared WebGPU particle engine: config schema, GPU uniform packing, canonical WGSL, and a headless compute simulation runner.",
+	"license": "MIT",
+	"author": "khudiiash",
+	"keywords": [
+		"webgpu",
+		"particles",
+		"gpu",
+		"wgsl",
+		"compute",
+		"vfx",
+		"three",
+		"playcanvas"
+	],
+	"type": "module",
+	"main": "./src/index.js",
+	"module": "./src/index.js",
+	"unpkg": "./dist/particles-core.global.js",
+	"jsdelivr": "./dist/particles-core.global.js",
+	"exports": {
+		".": {
+			"default": "./src/index.js"
+		},
+		"./effects": "./effects/index.js",
+		"./effects/*": "./effects/*",
+		"./wgsl": "./wgsl/index.js",
+		"./wgsl/*": "./wgsl/*",
+		"./src/*": "./src/*"
+	},
+	"files": [
+		"src",
+		"wgsl",
+		"effects",
+		"dist"
+	],
+	"scripts": {
+		"build": "esbuild src/index.js --bundle --format=esm --outfile=dist/index.mjs --loader:.json=json --external:three && esbuild src/index.js --bundle --format=iife --global-name=ParticlesCore --outfile=dist/particles-core.global.js --loader:.json=json --external:three",
+		"prepublishOnly": "npm run build"
+	},
+	"peerDependencies": {
+		"three": ">=0.160.0"
+	},
+	"peerDependenciesMeta": {
+		"three": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"esbuild": "^0.21.5"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}

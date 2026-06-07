@@ -1,0 +1,8 @@
+# Netlify deploy for the serverless editor SPA.
+# Builds the monorepo and publishes the static editor bundle.
+[build]
+  command = "npm ci && npm run build:editor"
+  publish = "apps/editor/dist"
+
+[build.environment]
+  NODE_VERSION = "20"

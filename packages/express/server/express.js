@@ -2,7 +2,7 @@
 
 const path = require("path");
 const express = require("express");
-const { PUBLIC_DIR } = require("./paths");
+const { PUBLIC_DIR, TEXTURES_DIR } = require("./paths");
 const { manager: particleEffectManager } = require("./ParticleEffectManager");
 const { manager: particleTextureManager } = require("./ParticleTextureManager");
 
@@ -27,9 +27,10 @@ function mountParticleEditor(app, options = {}) {
 	const readBody = options.readBody || defaultReadBody;
 
 	app.use(express.static(publicDir));
+	app.use("/particle-textures", express.static(TEXTURES_DIR));
 
 	app.get(editorPath, (req, res) => {
-		res.sendFile(path.join(publicDir, "particle-editor.html"));
+		res.sendFile(path.join(publicDir, "index.html"));
 	});
 
 	app.get("/api/particle-effects", (req, res) => {

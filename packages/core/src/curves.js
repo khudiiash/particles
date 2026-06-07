@@ -3,7 +3,7 @@
 /** @typedef {{ start: string, end: string, random: boolean, randomBetween: boolean, easing: string }} ColorCurve */
 
 import { collisionModeIndex, mergeRender, normalizeCollisionMode, mergeBoundsHalf } from "./render.js";
-import { DEFAULT_NOISE, mergeNoiseParams, packNoiseUniforms } from "./noise.js";
+import { DEFAULT_NOISE, mergeNoiseParams, packNoiseLayers } from "./noise.js";
 
 export const MAX_KEYS = 6;
 
@@ -199,11 +199,11 @@ export const SPAWN_SHAPES = [
 ];
 
 export const PARAM_FIELDS = [
-    { key: "gravity", label: "Gravity", step: 0.1, default: 4 },
-    { key: "drag", label: "Drag", step: 0.01, default: 0 },
+    { key: "gravity", label: "Gravity", step: 0.1, min: -20, max: 20, default: 4 },
+    { key: "drag", label: "Drag", step: 0.01, min: 0, max: 1, default: 0 },
     { key: "spawnShape", label: "Spawn shape", type: "select", options: SPAWN_SHAPES, default: "sphere" },
-    { key: "spawnRadius", label: "Spawn radius", step: 0.05, min: 0, default: 0 },
-    { key: "emitSpread", label: "Emit spread (s)", step: 0.1, default: 3 },
+    { key: "spawnRadius", label: "Spawn radius", step: 0.05, min: 0, max: 10, default: 0 },
+    { key: "emitSpread", label: "Emit spread (s)", step: 0.1, min: 0, max: 20, default: 3 },
 ];
 
 export const DEFAULT_COLOR_CURVE = {
@@ -269,8 +269,10 @@ export const DEFAULT_PARAMS_WITH_MOTION = {
     ...DEFAULT_NOISE,
 };
 
-// WGSL SimUniforms ends at noiseSeed (byte 444); struct rounds up to 448 (16-byte alignment).
-export const SIM_UNIFORM_BYTES = 448;
+// WGSL SimUniforms: scalar tail ends at noiseLayerCount (byte 420); the noise
+// layer array (array<vec4f, 8> = 4 layers x 32 bytes) is 16-byte aligned at 432,
+// ending at 560. Struct alignment (16) keeps the total at 560.
+export const SIM_UNIFORM_BYTES = 560;
 
 const EASING_INDEX = Object.fromEntries(EASINGS.map((e, i) => [e.id, i]));
 
@@ -288,9 +290,11 @@ const SIM_OFF = {
     hairLength: 380, hairSegments: 384, hairStiffness: 388,
     hairGravity: 392, hairGrowth: 396, hairRandomTilt: 400,
     fluidGridSize: 404, fluidStiffness: 408, fluidRestDensity: 412, fluidViscosity: 416,
-    noiseType: 420, noiseFrequency: 424, noiseAmplitude: 428, noiseSpeed: 432,
-    noiseOctaves: 436, noiseTargets: 440, noiseSeed: 444,
+    noiseLayerCount: 420, noiseLayers: 432,
 };
+
+/** Bytes per packed noise layer in the uniform buffer (2 x vec4f). */
+const NOISE_LAYER_STRIDE = 32;
 
 export function motionModeIndex(mode) {
     if (mode === "spline") return 1;
@@ -611,14 +615,19 @@ export function packSimUniforms({ count, dt, time, emitterPos, params, curves })
     view.setFloat32(SIM_OFF.fluidRestDensity, params.fluidRestDensity ?? 1.5, true);
     view.setFloat32(SIM_OFF.fluidViscosity, params.fluidViscosity ?? 0.1, true);
 
-    const noise = packNoiseUniforms(params);
-    view.setFloat32(SIM_OFF.noiseType, noise.noiseType, true);
-    view.setFloat32(SIM_OFF.noiseFrequency, noise.noiseFrequency, true);
-    view.setFloat32(SIM_OFF.noiseAmplitude, noise.noiseAmplitude, true);
-    view.setFloat32(SIM_OFF.noiseSpeed, noise.noiseSpeed, true);
-    view.setFloat32(SIM_OFF.noiseOctaves, noise.noiseOctaves, true);
-    view.setFloat32(SIM_OFF.noiseTargets, noise.noiseTargets, true);
-    view.setFloat32(SIM_OFF.noiseSeed, noise.noiseSeed, true);
+    const noise = packNoiseLayers(params);
+    view.setFloat32(SIM_OFF.noiseLayerCount, noise.count, true);
+    for (let i = 0; i < noise.layers.length && i < 4; i++) {
+        const L = noise.layers[i];
+        const o = SIM_OFF.noiseLayers + i * NOISE_LAYER_STRIDE;
+        view.setFloat32(o, L.type, true);
+        view.setFloat32(o + 4, L.frequency, true);
+        view.setFloat32(o + 8, L.amplitude, true);
+        view.setFloat32(o + 12, L.speed, true);
+        view.setFloat32(o + 16, L.octaves, true);
+        view.setFloat32(o + 20, L.targets, true);
+        view.setFloat32(o + 24, L.seed, true);
+    }
 
     return buf;
 }
@@ -929,10 +938,18 @@ export function curveRowHtml(key, label, curve, step) {
         <div class="curve-advanced${advanced ? "" : " hidden"}">
             <div class="curve-head curve-head-advanced">
                 <label class="chk"><input type="checkbox" data-f="random" ${merged.random ? "checked" : ""} /> Random</label>
+                <select class="curve-preset" data-action="preset" title="Apply a shape preset">
+                    <option value="">Shape…</option>
+                    <option value="ramp-up">Ramp up</option>
+                    <option value="ramp-down">Ramp down</option>
+                    <option value="bell">Bell</option>
+                    <option value="spike">Spike</option>
+                    <option value="constant">Flat</option>
+                </select>
                 <button type="button" class="btn-mini" data-action="add-key" title="Add key">+</button>
                 <button type="button" class="btn-mini" data-action="del-key" title="Remove last key">−</button>
             </div>
-            <canvas class="curve-graph" width="276" height="80"></canvas>
+            <canvas class="curve-graph" width="320" height="124"></canvas>
             <div class="kv-grid">
                 <label>Start min<input type="number" step="${step}" data-f="startMin" value="${k0.min}"${minAttr} /></label>
                 <label>Start max<input type="number" step="${step}" data-f="startMax" value="${k0.max}"${minAttr} /></label>
@@ -969,10 +986,18 @@ export function rotationCurveHtml(curve) {
         <div class="curve-advanced${advanced ? "" : " hidden"}">
             <div class="curve-head curve-head-advanced">
                 <label class="chk"><input type="checkbox" data-f="random" ${merged.random ? "checked" : ""} /> Random</label>
+                <select class="curve-preset" data-action="preset" title="Apply a shape preset">
+                    <option value="">Shape…</option>
+                    <option value="ramp-up">Ramp up</option>
+                    <option value="ramp-down">Ramp down</option>
+                    <option value="bell">Bell</option>
+                    <option value="spike">Spike</option>
+                    <option value="constant">Flat</option>
+                </select>
                 <button type="button" class="btn-mini" data-action="add-key" title="Add key">+</button>
                 <button type="button" class="btn-mini" data-action="del-key" title="Remove last key">−</button>
             </div>
-            <canvas class="curve-graph" width="276" height="80"></canvas>
+            <canvas class="curve-graph" width="320" height="124"></canvas>
             <div class="kv-grid">
                 <label>Start min °<input type="number" step="${step}" data-f="startMin" value="${k0.min}" /></label>
                 <label>Start max °<input type="number" step="${step}" data-f="startMax" value="${k0.max}" /></label>
@@ -1014,7 +1039,7 @@ export function velocityCurveHtml(velocity) {
                 <button type="button" class="channel-btn active" data-channel="y" title="Toggle Y axis">Y</button>
                 <button type="button" class="channel-btn" data-channel="z" title="Toggle Z axis">Z</button>
             </div>
-            <canvas class="curve-graph vel-graph" width="276" height="100"></canvas>
+            <canvas class="curve-graph vel-graph" width="320" height="150"></canvas>
             <div class="kv-grid">
                 <label>Time<input type="number" step="0.01" min="0" max="1" data-f="keyTime" value="${k.t}" /></label>
                 <label>Min<input type="number" step="0.1" data-f="keyMin" value="${k.min}" /></label>
@@ -1052,7 +1077,7 @@ export function colorCurveHtml(curve) {
                 <button type="button" class="btn-mini" data-action="add-key" title="Add key">+</button>
                 <button type="button" class="btn-mini" data-action="del-key" title="Remove last key">−</button>
             </div>
-            <canvas class="curve-graph color-graph" width="276" height="72"></canvas>
+            <canvas class="curve-graph color-graph" width="320" height="64"></canvas>
             <div class="kv-grid">
                 <label>Time<input type="number" step="0.01" min="0" max="1" data-f="keyTime" value="${k.t}" /></label>
                 <label>Color<input type="color" data-f="keyColor" value="${k.color}" /></label>

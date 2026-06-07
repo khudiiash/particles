@@ -1,0 +1,20 @@
+{
+	"name": "@khudiiash/particle-editor-app",
+	"version": "0.2.0",
+	"private": true,
+	"description": "WebGPU particle editor SPA — runs fully client-side on serverless static hosting.",
+	"license": "MIT",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"preview": "vite preview"
+	},
+	"dependencies": {
+		"@khudiiash/particles-core": "^0.2.0",
+		"three": "^0.160.0"
+	},
+	"devDependencies": {
+		"vite": "^5.3.1"
+	}
+}

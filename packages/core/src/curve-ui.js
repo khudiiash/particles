@@ -173,6 +173,12 @@ function canvasPoint(canvas, e) {
 
 const GRAPH_PAD = 8;
 const VELOCITY_CLAMP = 50;
+const T_SNAP = 0.05;
+
+/** Snap a value to a grid step (used while holding Shift during a drag). */
+function snapTo(v, step) {
+    return step > 0 ? Math.round(v / step) * step : v;
+}
 
 function clampGraphPointerY(y, h) {
     return Math.max(GRAPH_PAD, Math.min(h - GRAPH_PAD, y));
@@ -286,11 +292,15 @@ function setupScalarEditor(block, key, onChange) {
         const curve = readScalarBlock(block, def.default);
         const layout = state.drag.layout;
         const k = curve.keys[state.drag.keyIndex];
-        const t = layout.fromX(clampGraphPointerX(p.x, canvas.width));
+        let t = layout.fromX(clampGraphPointerX(p.x, canvas.width));
+        let val = layout.fromY(clampGraphPointerY(p.y, canvas.height));
+        if (e.shiftKey) {
+            t = snapTo(t, T_SNAP);
+            val = snapTo(val, parseFloat(block.dataset.step) || 0.05);
+        }
         if (state.drag.keyIndex === 0) k.t = 0;
         else if (state.drag.keyIndex === curve.keys.length - 1) k.t = 1;
         else k.t = Math.max(0.01, Math.min(0.99, t));
-        const val = layout.fromY(clampGraphPointerY(p.y, canvas.height));
         const half = Math.max(0.0001, (k.max - k.min) * 0.5);
         if (state.drag.mode === "min") k.min = Math.min(val, k.max);
         else if (state.drag.mode === "max") k.max = Math.max(val, k.min);
@@ -343,6 +353,33 @@ function setupScalarEditor(block, key, onChange) {
         const curve = readScalarBlock(block, def.default);
         if (curve.keys.length <= 2) return;
         curve.keys = normalizeKeys(curve.keys.slice(0, -1));
+        applyScalarBlock(block, curve, def.key);
+        repaint();
+        emit(onChange);
+    });
+
+    block.querySelector('[data-action="preset"]')?.addEventListener("change", (e) => {
+        e.stopPropagation();
+        const shape = e.target.value;
+        e.target.value = "";
+        if (!shape) return;
+        const curve = readScalarBlock(block, def.default);
+        const vals = curve.keys.flatMap((k) => [k.min, k.max]);
+        let lo = Math.min(...vals);
+        let hi = Math.max(...vals);
+        if (Math.abs(hi - lo) < 1e-4) hi = lo + Math.max(Math.abs(lo) * 0.5, 1);
+        const mk = (t, v) => ({ t, min: v, max: v });
+        let keys;
+        switch (shape) {
+            case "ramp-up": keys = [mk(0, lo), mk(1, hi)]; break;
+            case "ramp-down": keys = [mk(0, hi), mk(1, lo)]; break;
+            case "bell": keys = [mk(0, lo), mk(0.5, hi), mk(1, lo)]; break;
+            case "spike": keys = [mk(0, lo), mk(0.8, hi), mk(1, lo)]; break;
+            case "constant": { const m = (lo + hi) / 2; keys = [mk(0, m), mk(1, m)]; break; }
+            default: return;
+        }
+        for (const k of keys) clampKeyframe(def.key, k);
+        curve.keys = normalizeKeys(keys);
         applyScalarBlock(block, curve, def.key);
         repaint();
         emit(onChange);
@@ -450,11 +487,15 @@ function setupVelocityEditor(block, onChange) {
         const layout = state.drag.layout;
         const keys = vel.channels[state.drag.channel].keys;
         const k = keys[state.drag.keyIndex];
-        const t = layout.fromX(clampGraphPointerX(p.x, canvas.width));
+        let t = layout.fromX(clampGraphPointerX(p.x, canvas.width));
+        let val = layout.fromY(clampGraphPointerY(p.y, canvas.height));
+        if (e.shiftKey) {
+            t = snapTo(t, T_SNAP);
+            val = snapTo(val, 0.5);
+        }
         if (state.drag.keyIndex === 0) k.t = 0;
         else if (state.drag.keyIndex === keys.length - 1) k.t = 1;
         else k.t = Math.max(0.01, Math.min(0.99, t));
-        const val = layout.fromY(clampGraphPointerY(p.y, canvas.height));
         const half = Math.max(0.0001, (k.max - k.min) * 0.5);
         if (state.drag.mode === "min") k.min = Math.min(val, k.max);
         else if (state.drag.mode === "max") k.max = Math.max(val, k.min);
@@ -599,7 +640,8 @@ function setupColorEditor(block, onChange) {
         const layout = colorLayout();
         const k = color.keys[state.drag.keyIndex];
         if (!k) return;
-        const t = layout.fromX(clampGraphPointerX(p.x, canvas.width));
+        let t = layout.fromX(clampGraphPointerX(p.x, canvas.width));
+        if (e.shiftKey) t = snapTo(t, T_SNAP);
         if (state.drag.keyIndex === 0) k.t = 0;
         else if (state.drag.keyIndex === color.keys.length - 1) k.t = 1;
         else k.t = Math.max(0.01, Math.min(0.99, t));

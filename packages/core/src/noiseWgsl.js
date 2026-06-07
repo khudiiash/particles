@@ -177,41 +177,41 @@ fn noiseFbmVec3(p: vec3f, noiseKind: i32, octaves: i32) -> vec3f {
 
 export function particleNoiseWgsl() {
     return `${noiseCoreWgsl()}
+// Layered noise: SimUniforms exposes noiseLayerCount + noiseLayers: array<vec4f, 8>
+// (2 vec4 per layer: [type, frequency, amplitude, speed], [octaves, targets, seed, _]).
 fn applyParticleNoise(p: ptr<function, Particle>, lifeT: f32, mode: i32) {
-    if (ub.noiseType < 0.5 || ub.noiseAmplitude < 0.0001) {
-        return;
-    }
-    let targets = i32(round(ub.noiseTargets));
-    if (targets == 0) {
-        return;
-    }
-
-    let noiseKind = i32(round(ub.noiseType));
-    let octaves = i32(clamp(round(ub.noiseOctaves), 1.0, 4.0));
-    let seedOff = vec3f(ub.noiseSeed * 0.173, ub.noiseSeed * 0.319, ub.noiseSeed * 0.547);
-    let anim = vec3f(
-        ub.time * ub.noiseSpeed,
-        ub.time * ub.noiseSpeed * 0.71,
-        lifeT * ub.noiseSpeed * 0.37,
-    );
-    let sampleP = (*p).position * ub.noiseFrequency + seedOff + anim;
-    let n = noiseFbmVec3(sampleP, noiseKind, octaves);
-    let amp = ub.noiseAmplitude;
-
-    if ((targets & NOISE_TARGET_VELOCITY) != 0 && mode != 3 && mode != 4) {
-        (*p).velocity += n * amp;
-    }
-    if ((targets & NOISE_TARGET_COLOR) != 0 && mode != 3) {
-        (*p).color = clamp((*p).color + n * amp * 0.35, vec3f(0.0), vec3f(3.0));
-    }
-    if ((targets & NOISE_TARGET_SIZE) != 0) {
-        (*p).size = max(0.0001, (*p).size + n.x * amp * 0.015);
-    }
-    if ((targets & NOISE_TARGET_OPACITY) != 0) {
-        (*p).opacity = clamp((*p).opacity + n.y * amp * 0.3, 0.0, 1.0);
-    }
-    if ((targets & NOISE_TARGET_POSITION) != 0 && mode != 3 && mode != 4) {
-        (*p).position += n * amp * ub.dt * 3.0;
+    let layerCount = i32(round(ub.noiseLayerCount));
+    if (layerCount <= 0) { return; }
+    for (var li = 0; li < 4; li = li + 1) {
+        if (li >= layerCount) { break; }
+        let a0 = ub.noiseLayers[li * 2];
+        let b0 = ub.noiseLayers[li * 2 + 1];
+        let nAmp = a0.z;
+        let targets = i32(round(b0.y));
+        if (a0.x < 0.5 || nAmp < 0.0001 || targets == 0) { continue; }
+        let noiseKind = i32(round(a0.x));
+        let octaves = i32(clamp(round(b0.x), 1.0, 4.0));
+        let nSeed = b0.z;
+        let seedOff = vec3f(nSeed * 0.173, nSeed * 0.319, nSeed * 0.547);
+        let anim = vec3f(ub.time * a0.w, ub.time * a0.w * 0.71, lifeT * a0.w * 0.37);
+        let sampleP = (*p).position * a0.y + seedOff + anim;
+        let n = noiseFbmVec3(sampleP, noiseKind, octaves);
+        let amp = nAmp;
+        if ((targets & NOISE_TARGET_VELOCITY) != 0 && mode != 3 && mode != 4) {
+            (*p).velocity += n * amp;
+        }
+        if ((targets & NOISE_TARGET_COLOR) != 0 && mode != 3) {
+            (*p).color = clamp((*p).color + n * amp * 0.35, vec3f(0.0), vec3f(3.0));
+        }
+        if ((targets & NOISE_TARGET_SIZE) != 0) {
+            (*p).size = max(0.0001, (*p).size + n.x * amp * 0.015);
+        }
+        if ((targets & NOISE_TARGET_OPACITY) != 0) {
+            (*p).opacity = clamp((*p).opacity + n.y * amp * 0.3, 0.0, 1.0);
+        }
+        if ((targets & NOISE_TARGET_POSITION) != 0 && mode != 3 && mode != 4) {
+            (*p).position += n * amp * ub.dt * 3.0;
+        }
     }
 }
 `;

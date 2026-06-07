@@ -1,25 +1,22 @@
 {
-	"name": "@khudiiash/gpu-particle-editor",
-	"version": "0.1.0",
-	"description": "WebGPU particle editor, effect library, and Express integration",
+	"name": "gpu-particle-editor-monorepo",
+	"version": "0.2.0",
+	"private": true,
+	"description": "WebGPU GPU particle editor, shared engine core, and three.js / PlayCanvas runtime players",
 	"license": "MIT",
-	"main": "src/index.js",
-	"exports": {
-		".": "./src/index.js",
-		"./public/*": "./public/*",
-		"./particles/*": "./public/particles/*"
-	},
-	"files": [
-		"public",
-		"src",
-		"scripts",
-		"bin"
+	"workspaces": [
+		"packages/core",
+		"packages/three",
+		"packages/playcanvas",
+		"packages/express",
+		"apps/editor"
 	],
-	"bin": {
-		"gpu-particle-editor": "./bin/dev-server.js"
-	},
 	"scripts": {
-		"start": "node bin/dev-server.js",
+		"dev": "npm run dev --workspace @khudiiash/particle-editor-app",
+		"build": "npm run build --workspace @khudiiash/particles-core --workspace @khudiiash/particles-three --workspace @khudiiash/particles-playcanvas --workspace @khudiiash/particle-editor-app",
+		"build:libs": "npm run build --workspace @khudiiash/particles-core --workspace @khudiiash/particles-three --workspace @khudiiash/particles-playcanvas",
+		"build:editor": "npm run build --workspace @khudiiash/particle-editor-app",
+		"start": "node packages/express/dev-server.js",
 		"sync:render": "node scripts/sync-canonical-render.mjs",
 		"sync:simulation": "node scripts/sync-canonical-simulation.mjs",
 		"inject:noise": "node scripts/inject-particle-noise.mjs",
@@ -28,7 +25,8 @@
 	"engines": {
 		"node": ">=18.17.0"
 	},
-	"dependencies": {
-		"express": "^4.19.2"
+	"devDependencies": {
+		"esbuild": "^0.21.5",
+		"vite": "^5.3.1"
 	}
 }

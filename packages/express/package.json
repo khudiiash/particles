@@ -1,0 +1,21 @@
+{
+	"name": "@khudiiash/particles-server",
+	"version": "0.2.0",
+	"description": "Optional Express integration: serves the built editor and a REST API for persisting effects/textures. The editor is primarily a serverless static app; this package is for self-hosted backends.",
+	"license": "MIT",
+	"main": "./index.js",
+	"bin": {
+		"gpu-particle-editor": "./dev-server.js"
+	},
+	"files": [
+		"index.js",
+		"server",
+		"dev-server.js"
+	],
+	"scripts": {
+		"start": "node dev-server.js"
+	},
+	"dependencies": {
+		"express": "^4.19.2"
+	}
+}

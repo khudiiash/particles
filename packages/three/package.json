@@ -1,0 +1,46 @@
+{
+	"name": "@khudiiash/particles-three",
+	"version": "0.2.0",
+	"description": "three.js WebGPU runtime player for @khudiiash/particles-core effect configs.",
+	"license": "MIT",
+	"author": "khudiiash",
+	"keywords": [
+		"webgpu",
+		"particles",
+		"three",
+		"threejs",
+		"gpu",
+		"wgsl",
+		"vfx"
+	],
+	"type": "module",
+	"main": "./src/index.js",
+	"module": "./src/index.js",
+	"unpkg": "./dist/index.mjs",
+	"jsdelivr": "./dist/index.mjs",
+	"exports": {
+		".": {
+			"default": "./src/index.js"
+		}
+	},
+	"files": [
+		"src",
+		"dist"
+	],
+	"scripts": {
+		"build": "esbuild src/index.js --bundle --format=esm --outfile=dist/index.mjs --external:three --external:three/* --external:@khudiiash/particles-core",
+		"prepublishOnly": "npm run build"
+	},
+	"peerDependencies": {
+		"three": ">=0.160.0"
+	},
+	"dependencies": {
+		"@khudiiash/particles-core": "^0.2.0"
+	},
+	"devDependencies": {
+		"esbuild": "^0.21.5"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}

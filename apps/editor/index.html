@@ -4,66 +4,124 @@
     <meta charset="UTF-8" />
     <title>GPU Particle Editor</title>
     <style>
+        :root {
+            --bg: #0e0f14;
+            --surface: #16181f;
+            --surface-2: #1c1f28;
+            --panel: #12141a;
+            --input: #0c0d12;
+            --border: #262a35;
+            --border-soft: #20242e;
+            --text: #e6e8ee;
+            --text-dim: #9aa0ad;
+            --text-mute: #6b7280;
+            --accent: #6d8bff;
+            --accent-soft: #2a3556;
+            --danger: #e5484d;
+            --ok: #46c08a;
+            --radius: 7px;
+            --radius-sm: 5px;
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            background: #12121f;
-            color: #eee;
-            font-family: ui-monospace, monospace;
+            background: var(--bg);
+            color: var(--text);
+            font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
             font-size: 12px;
             height: 100vh;
             display: flex;
             flex-direction: column;
         }
         header {
-            padding: 10px 14px;
-            background: #1a1a2e;
-            border-bottom: 1px solid #333;
+            padding: 8px 12px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
             display: flex;
-            gap: 8px;
+            gap: 6px;
             align-items: center;
             flex-wrap: wrap;
         }
-        header h1 { font-size: 14px; margin-right: auto; color: #f0a500; }
+        header h1 {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            margin-right: auto;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        header h1::before {
+            content: "";
+            width: 9px; height: 9px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent);
+        }
         button, label.file-btn {
-            background: #0f3460;
-            color: #eee;
-            border: none;
-            border-radius: 4px;
+            background: var(--surface-2);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
             padding: 6px 10px;
             cursor: pointer;
             font: inherit;
+            transition: background 0.12s, border-color 0.12s;
         }
-        button:hover, label.file-btn:hover { background: #1a4a80; }
-        button.primary { background: #e94560; }
-        button.primary:hover { background: #ff6b81; }
-        #status { color: #8f8; min-width: 200px; }
-        #status.error { color: #f88; }
-        main { flex: 1; display: flex; min-height: 0; }
+        button:hover, label.file-btn:hover { background: #262a35; border-color: #333a48; }
+        button.primary { background: var(--accent); border-color: var(--accent); color: #0a0c12; font-weight: 600; }
+        button.primary:hover { background: #859dff; border-color: #859dff; }
+        #status { color: var(--ok); min-width: 180px; font-size: 11px; }
+        #status.error { color: #ff7a7d; }
+        main { flex: 1; display: flex; min-height: 0; position: relative; }
         #sidebar {
-            width: 320px;
-            background: #16213e;
-            padding: 12px;
+            width: 312px;
+            background: var(--panel);
+            padding: 10px 12px 24px;
             overflow-y: auto;
-            border-right: 1px solid #333;
+            border-right: 1px solid var(--border);
         }
         #sidebar h2 {
-            font-size: 11px;
+            font-size: 10px;
+            font-weight: 600;
             text-transform: uppercase;
-            color: #888;
-            margin: 12px 0 8px;
+            letter-spacing: 0.06em;
+            color: var(--text-dim);
+            margin: 14px -12px 8px;
+            padding: 7px 12px 7px 26px;
+            background: var(--surface);
+            border-top: 1px solid var(--border-soft);
+            border-bottom: 1px solid var(--border-soft);
+            cursor: pointer;
+            user-select: none;
+            position: relative;
         }
         #sidebar h2:first-child { margin-top: 0; }
-        .field { margin-bottom: 10px; }
-        .field label { display: block; color: #aaa; margin-bottom: 4px; }
+        #sidebar h2::before {
+            content: "";
+            position: absolute;
+            left: 11px;
+            top: 50%;
+            width: 6px; height: 6px;
+            border-right: 1.5px solid var(--text-mute);
+            border-bottom: 1.5px solid var(--text-mute);
+            transform: translateY(-65%) rotate(45deg);
+            transition: transform 0.15s;
+        }
+        #sidebar h2.collapsed::before { transform: translateY(-50%) rotate(-45deg); }
+        #sidebar h2:hover { color: var(--text); }
+        .field { margin-bottom: 9px; }
+        .field label { display: block; color: var(--text-dim); margin-bottom: 4px; }
         .field input, .field textarea {
             width: 100%;
-            background: #0d1b2a;
-            border: 1px solid #333;
-            color: #eee;
+            background: var(--input);
+            border: 1px solid var(--border);
+            color: var(--text);
             padding: 6px;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             font: inherit;
         }
+        .field input:focus, .field textarea:focus, select:focus { outline: none; border-color: var(--accent); }
         #preview-wrap {
             flex: 1;
             display: flex;
@@ -75,7 +133,7 @@
         #preview-wrap canvas#preview {
             flex: 1;
             width: 100%;
-            background: #0a0a12;
+            background: radial-gradient(circle at 50% 35%, #15171f 0%, #0a0b10 70%);
             display: block;
             touch-action: none;
         }
@@ -92,31 +150,41 @@
             line-height: 1.4;
         }
         #editors {
-            width: 42%;
-            min-width: 320px;
+            width: 0;
+            min-width: 0;
             display: flex;
             flex-direction: column;
-            border-left: 1px solid #333;
+            border-left: 1px solid var(--border);
+            background: var(--panel);
+            overflow: hidden;
+            transition: width 0.18s ease;
         }
-        .tabs { display: flex; background: #1a1a2e; }
+        body.shaders-open #editors {
+            width: 40%;
+            min-width: 340px;
+        }
+        .tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); }
         .tab {
             flex: 1;
-            padding: 8px;
+            padding: 9px 8px;
             text-align: center;
             cursor: pointer;
             border-bottom: 2px solid transparent;
-            color: #888;
+            color: var(--text-mute);
+            font-size: 11px;
+            white-space: nowrap;
         }
-        .tab.active { color: #f0a500; border-bottom-color: #f0a500; }
+        .tab:hover { color: var(--text-dim); }
+        .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
         textarea.editor {
             flex: 1;
             width: 100%;
             resize: none;
-            background: #0d1b2a;
-            color: #cde;
+            background: var(--input);
+            color: #c8d3e6;
             border: none;
             padding: 10px;
-            font: 12px/1.4 ui-monospace, monospace;
+            font: 12px/1.5 ui-monospace, "SF Mono", Menlo, monospace;
         }
         .path-toolbar {
             display: flex;
@@ -139,11 +207,11 @@
         .row { display: flex; gap: 6px; }
         .row button, .row select { flex: 1; }
         select {
-            background: #0d1b2a;
-            border: 1px solid #333;
-            color: #eee;
+            background: var(--input);
+            border: 1px solid var(--border);
+            color: var(--text);
             padding: 6px;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             font: inherit;
             width: 100%;
         }
@@ -152,12 +220,62 @@
         button.danger:hover { background: #7a2020; }
         button:disabled { opacity: 0.45; cursor: not-allowed; }
         .field.compact { margin-bottom: 6px; }
-        .field.compact label { font-size: 10px; margin-bottom: 2px; }
+        .field.compact label { font-size: 10.5px; margin-bottom: 2px; color: var(--text-dim); }
         .field.compact input, .field.compact select { padding: 4px 6px; font-size: 11px; }
+        /* Inline label|control row for simple fields (selects / text). */
+        .field.compact.cc-row {
+            display: grid;
+            grid-template-columns: 96px 1fr;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+        .field.compact.cc-row > label { margin: 0; line-height: 1.2; }
+        /* Slider field: label + number on one line, slider beneath. */
+        .field.compact.cc-slider { margin-bottom: 9px; }
+        .cc-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .cc-head > label { margin: 0; flex: 1; min-width: 0; }
+        .cc-head > input[type="number"] {
+            width: 58px;
+            text-align: right;
+            padding: 3px 5px;
+            font-size: 11px;
+            color: var(--text);
+            background: var(--input);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+        }
+        .cc-range {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 16px;
+            margin-top: 3px;
+            background: transparent;
+            cursor: pointer;
+        }
+        .cc-range::-webkit-slider-runnable-track { height: 4px; border-radius: 3px; background: var(--border); }
+        .cc-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 13px; height: 13px;
+            margin-top: -4.5px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 2px solid var(--bg);
+            transition: transform 0.1s;
+        }
+        .cc-range:hover::-webkit-slider-thumb { transform: scale(1.15); }
+        .cc-range::-moz-range-track { height: 4px; border-radius: 3px; background: var(--border); }
+        .cc-range::-moz-range-thumb {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 2px solid var(--bg);
+        }
         .curve-block {
-            background: #0d1b2a;
-            border: 1px solid #2a2a40;
-            border-radius: 6px;
+            background: var(--surface);
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-sm);
             padding: 8px;
             margin-bottom: 8px;
         }
@@ -300,9 +418,17 @@
         }
         .param-grid {
             display: grid;
+            grid-template-columns: 1fr;
+            gap: 0;
+        }
+        .noise-layer .param-grid {
             grid-template-columns: 1fr 1fr;
             gap: 6px;
         }
+        /* Lean mode (default): hide verbose helper paragraphs to reduce clutter. */
+        body.lean .curve-hint,
+        body.lean #motion-hint { display: none; }
+        .curve-hint-simple { display: block !important; }
         .check-row {
             display: flex;
             flex-wrap: wrap;
@@ -315,15 +441,53 @@
         }
         canvas.curve-graph {
             width: 100%;
-            height: 80px;
+            height: 124px;
             display: block;
             margin-bottom: 6px;
-            border-radius: 4px;
-            border: 1px solid #1e2a3a;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: var(--input);
             cursor: crosshair;
         }
-        canvas.vel-graph { height: 100px; }
+        canvas.vel-graph { height: 150px; }
+        canvas.color-graph { height: 64px; }
+        .curve-preset {
+            width: auto;
+            flex: 0 0 auto;
+            padding: 2px 4px;
+            font-size: 10px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            border-radius: 3px;
+        }
+        .noise-layer {
+            background: var(--surface);
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-sm);
+            padding: 8px;
+            margin-bottom: 8px;
+        }
+        .noise-layer-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        .noise-layer-title { color: var(--accent); font-weight: 600; font-size: 11px; }
+        .noise-targets { gap: 6px 12px; margin: 4px 0 0; }
+        .btn-add-layer {
+            width: 100%;
+            background: transparent;
+            border: 1px dashed var(--border);
+            color: var(--text-dim);
+            padding: 7px;
+            font-size: 11px;
+        }
+        .btn-add-layer:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: transparent; }
+        .btn-shaders-toggle.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
         .hidden { display: none !important; }
+        .section-hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -336,6 +500,8 @@
         <button id="btn-reset-camera">Reset camera</button>
         <button id="btn-export">Download</button>
         <label class="file-btn">Import<input type="file" id="import-file" accept="application/json" /></label>
+        <button id="btn-shaders" class="btn-shaders-toggle" title="Toggle WGSL shader editors">&lt;/&gt; Shaders</button>
+        <button id="btn-help" class="btn-shaders-toggle" title="Toggle inline help text">? Help</button>
         <span id="status">Loading…</span>
     </header>
     <main>
@@ -355,14 +521,6 @@
         </div>
     </main>
 
-<script type="importmap">
-{
-    "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-    }
-}
-</script>
 <script type="module">
 import {
     SCALAR_CURVES,
@@ -375,17 +533,19 @@ import {
     colorCurveHtml,
     readCurvesFromSidebar,
     SIM_UNIFORM_BYTES,
-} from "./particles/curves.js";
-import { setupCurveEditors } from "./particles/curve-ui.js";
-import { pathParamHtml, packPathBuffer, mergePath, normalizePathAnchor, canonicalizeStoredPath, PATH_BUFFER_BYTES, PATH_PARAM_FIELDS, bindPathShapePanel } from "./particles/path.js";
-import { motionPanelHtml, bindMotionModePanels } from "./particles/motion.js";
-import { renderPanelHtml, readRenderFromUI, readExtendedParamsFromUI, readShowBoundsFromUI, mergeRender, bindTextureUpload, bindCollisionPanel } from "./particles/render.js";
-import { noisePanelHtml, readNoiseFromUI, bindNoisePanel } from "./particles/noise.js";
-import { createThreePreview } from "./particles/preview-three.js";
-import { PARTICLE_STRIDE_FLOATS } from "./particles/layout.js";
-import { createMpmBuffers, setupMpmGpu, fluidFrameDt } from "./particles/mpm-gpu.js";
-import { createFluidGpu, fluidGridDim, fluidDeviceLimits } from "./particles/fluid-gpu.js";
-import { paramsToFluidConfig } from "./particles/fluid-params.js";
+} from "@khudiiash/particles-core/src/curves.js";
+import { setupCurveEditors } from "@khudiiash/particles-core/src/curve-ui.js";
+import { pathParamHtml, packPathBuffer, mergePath, normalizePathAnchor, canonicalizeStoredPath, PATH_BUFFER_BYTES, PATH_PARAM_FIELDS, bindPathShapePanel } from "@khudiiash/particles-core/src/path.js";
+import { motionPanelHtml, bindMotionModePanels } from "@khudiiash/particles-core/src/motion.js";
+import { renderPanelHtml, readRenderFromUI, readExtendedParamsFromUI, readShowBoundsFromUI, mergeRender, bindTextureUpload, bindCollisionPanel, setTextureBackend } from "@khudiiash/particles-core/src/render.js";
+import { noisePanelHtml, readNoiseFromUI, bindNoisePanel } from "@khudiiash/particles-core/src/noise.js";
+import { createThreePreview } from "@khudiiash/particles-core/src/preview-three.js";
+import { PARTICLE_STRIDE_FLOATS } from "@khudiiash/particles-core/src/layout.js";
+import { createMpmBuffers, setupMpmGpu, fluidFrameDt } from "@khudiiash/particles-core/src/mpm-gpu.js";
+import { createFluidGpu, fluidGridDim, fluidDeviceLimits } from "@khudiiash/particles-core/src/fluid-gpu.js";
+import { paramsToFluidConfig } from "@khudiiash/particles-core/src/fluid-params.js";
+import { CANONICAL_RENDER, CANONICAL_SIMULATION } from "@khudiiash/particles-core";
+import { storage } from "./src/storage.js";
 
 const PARTICLE_BYTES = PARTICLE_STRIDE_FLOATS * 4;
 const DISPATCH_STRIDE = 1024;
@@ -607,6 +767,72 @@ function rawRenderToPlayCanvas(render) {
     };
 }
 
+// Number inputs that should stay plain (no slider) even though they have bounds.
+const NO_SLIDER_IDS = new Set(['f-max', 'f-wg']);
+
+function clampNum(value, min, max) {
+    const v = parseFloat(value);
+    if (!Number.isFinite(v)) return parseFloat(min) || 0;
+    return Math.max(parseFloat(min), Math.min(parseFloat(max), v));
+}
+
+/**
+ * Progressive control enhancement: turns simple label+control fields into
+ * compact inline rows, and bounded number inputs into label+number+slider
+ * combos. Fields with extra structure (texture pickers, etc.) are left as-is.
+ */
+function enhanceControls(root) {
+    root.querySelectorAll('.field.compact').forEach((field) => {
+        if (field.dataset.enhanced) return;
+        field.dataset.enhanced = '1';
+        if (field.closest('.noise-layer')) return;
+
+        const label = field.querySelector(':scope > label');
+        const others = [...field.children].filter((el) => el !== label);
+        if (!label || others.length !== 1) return;
+
+        const ctrl = others[0];
+        const tag = ctrl.tagName;
+        const isNum = tag === 'INPUT' && ctrl.type === 'number';
+        const isSimple = tag === 'SELECT' || (tag === 'INPUT' && (ctrl.type === 'text' || ctrl.type === 'number'));
+        if (!isSimple) return;
+
+        const hasRange = isNum && ctrl.min !== '' && ctrl.max !== ''
+            && Number.isFinite(parseFloat(ctrl.min)) && Number.isFinite(parseFloat(ctrl.max))
+            && !NO_SLIDER_IDS.has(ctrl.id);
+
+        if (!hasRange) {
+            field.classList.add('cc-row');
+            return;
+        }
+
+        field.classList.add('cc-slider');
+        const head = document.createElement('div');
+        head.className = 'cc-head';
+        field.insertBefore(head, ctrl);
+        head.appendChild(label);
+        head.appendChild(ctrl);
+
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.className = 'cc-range';
+        slider.min = ctrl.min;
+        slider.max = ctrl.max;
+        slider.step = ctrl.step || 'any';
+        slider.value = clampNum(ctrl.value, ctrl.min, ctrl.max);
+        field.appendChild(slider);
+
+        slider.addEventListener('input', () => {
+            ctrl.value = slider.value;
+            ctrl.dispatchEvent(new Event('input', { bubbles: true }));
+            ctrl.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        const syncSlider = () => { slider.value = clampNum(ctrl.value, slider.min, slider.max); };
+        ctrl.addEventListener('input', syncSlider);
+        ctrl.addEventListener('change', syncSlider);
+    });
+}
+
 function buildSidebar(cfg) {
     const params = mergeParams(cfg.params);
     const curves = mergeCurves(cfg.curves);
@@ -622,7 +848,7 @@ function buildSidebar(cfg) {
                 `<option value="${o.id}"${val === o.id ? " selected" : ""}>${o.label}</option>`).join("");
             return `<div class="field compact"><label>${f.label}</label><select id="p-${f.key}">${opts}</select></div>`;
         }
-        const attrs = [`step="${f.step}"`, f.min != null ? `min="${f.min}"` : ""].filter(Boolean).join(" ");
+        const attrs = [`step="${f.step}"`, f.min != null ? `min="${f.min}"` : "", f.max != null ? `max="${f.max}"` : ""].filter(Boolean).join(" ");
         return `<div class="field compact"><label>${f.label}</label><input id="p-${f.key}" type="number" ${attrs} value="${params[f.key]}" /></div>`;
     }).join("");
 
@@ -662,6 +888,7 @@ function buildSidebar(cfg) {
         await loadEffectById(id);
     };
 
+    enhanceControls(sidebar);
     paintCurveGraphs(sidebar, schedulePreviewUpdate);
     bindPathButtons();
     bindPathShapePanel(schedulePreviewUpdate);
@@ -1314,55 +1541,30 @@ async function loadConfig(json, fileId = null) {
 }
 
 async function refreshFileList() {
-    const res = await fetch("/api/particle-effects");
-    if (!res.ok) throw new Error(`Failed to list effects (${res.status})`);
-    const data = await res.json();
-    effectFiles = data.effects || [];
+    effectFiles = storage.list();
 }
 
 async function loadEffectById(id) {
-    const res = await fetch(`/api/particle-effects/${encodeURIComponent(id)}`);
-    if (!res.ok) throw new Error(`Failed to load "${id}" (${res.status})`);
-    await loadConfig(await res.json(), id);
+    const effect = storage.get(id);
+    if (!effect) throw new Error(`Effect "${id}" not found`);
+    await loadConfig(effect, id);
     updateTemplateUiHints();
     setStatus(`Loaded "${id}"`);
 }
 
-let canonicalPlayCanvasRender = null;
-let canonicalSimulation = null;
-
-async function ensureCanonicalRender() {
-    if (!canonicalPlayCanvasRender) {
-        const res = await fetch("/particles/canonical-render.json");
-        if (!res.ok) throw new Error("Failed to load canonical render WGSL");
-        canonicalPlayCanvasRender = await res.json();
-    }
-    return canonicalPlayCanvasRender;
-}
-
-async function ensureCanonicalSimulation() {
-    if (!canonicalSimulation) {
-        const res = await fetch("/particles/canonical-simulation.json");
-        if (!res.ok) throw new Error("Failed to load canonical simulation WGSL");
-        canonicalSimulation = await res.json();
-    }
-    return canonicalSimulation;
-}
+const canonicalPlayCanvasRender = CANONICAL_RENDER;
+const canonicalSimulation = CANONICAL_SIMULATION;
 
 async function applyCanonicalShaders(cfg) {
-    const [canonicalRender, canonicalSim] = await Promise.all([
-        ensureCanonicalRender(),
-        ensureCanonicalSimulation(),
-    ]);
     cfg.simulation = {
-        entryPoint: cfg.simulation?.entryPoint || canonicalSim.entryPoint,
-        wgsl: canonicalSim.wgsl,
+        entryPoint: cfg.simulation?.entryPoint || canonicalSimulation.entryPoint,
+        wgsl: canonicalSimulation.wgsl,
     };
     cfg.render = {
         ...cfg.render,
-        wgslShared: canonicalRender.wgslShared,
-        vertexWgsl: canonicalRender.vertexWgsl,
-        fragmentWgsl: canonicalRender.fragmentWgsl,
+        wgslShared: canonicalPlayCanvasRender.wgslShared,
+        vertexWgsl: canonicalPlayCanvasRender.vertexWgsl,
+        fragmentWgsl: canonicalPlayCanvasRender.fragmentWgsl,
     };
     return cfg;
 }
@@ -1370,7 +1572,7 @@ async function applyCanonicalShaders(cfg) {
 async function exportPlayCanvasConfig() {
     const raw = readConfigFromUI(config);
     const renderMeta = mergeRender(readRenderFromUI(raw.render));
-    const canonicalSim = await ensureCanonicalSimulation();
+    const canonicalSim = canonicalSimulation;
     const emitterRoot = threePreview?.getEmitterRoot?.() ?? [
         raw.params.emitterX ?? 0,
         raw.params.emitterY ?? 0,
@@ -1403,30 +1605,11 @@ async function saveEffectAsNew(defaultName = "my_effect", promptMessage = null) 
     const effect = await exportPlayCanvasConfig();
     effect.name = name.trim();
 
-    const res = await fetch("/api/particle-effects/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ effect }),
-    });
-    if (!res.ok) throw new Error(await readApiError(res));
-    const saved = await res.json();
+    const saved = storage.save(effect);
     await refreshFileList();
     await loadEffectById(saved.id);
-    setStatus(`Created "${saved.id}.json"`);
+    setStatus(`Created "${saved.id}"`);
     return true;
-}
-
-async function readApiError(res) {
-    const text = await res.text();
-    try {
-        const json = JSON.parse(text);
-        if (json?.error) return json.error;
-    } catch (_) {}
-    if (text.includes("PayloadTooLargeError") || text.includes("entity too large")) {
-        return "Save payload too large for the server — restart the server after updating.";
-    }
-    const plain = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-    return plain.slice(0, 240) || `Request failed (${res.status})`;
 }
 
 function updateTemplateUiHints() {
@@ -1455,13 +1638,7 @@ async function saveCurrentEffect() {
     }
 
     const effect = await exportPlayCanvasConfig();
-    const res = await fetch("/api/particle-effects/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ effect, previousId: currentFileId }),
-    });
-    if (!res.ok) throw new Error(await readApiError(res));
-    const saved = await res.json();
+    const saved = storage.save(effect, { previousId: currentFileId });
     currentFileId = saved.id;
     const emitterRoot = threePreview?.getEmitterRoot?.() ?? [0, 0, 0];
     const canonical = canonicalizeStoredPath(effect.path, mergeParams(effect.params), emitterRoot);
@@ -1476,7 +1653,7 @@ async function saveCurrentEffect() {
     syncPathEditorFromConfig();
     await refreshFileList();
     buildSidebar(config);
-    setStatus(`Saved "${saved.id}.json"`);
+    setStatus(`Saved "${saved.id}"`);
 }
 
 async function createNewEffect() {
@@ -1492,14 +1669,9 @@ async function deleteCurrentEffect() {
         setStatus(`"${currentFileId}" is a read-only template and cannot be deleted`, true);
         return;
     }
-    if (!confirm(`Delete "${currentFileId}.json"?`)) return;
+    if (!confirm(`Delete "${currentFileId}"?`)) return;
     const deletedId = currentFileId;
-    const res = await fetch("/api/particle-effects/delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: deletedId }),
-    });
-    if (!res.ok) throw new Error(await res.text());
+    storage.delete(deletedId);
     await refreshFileList();
     const nextId = effectFiles[0]?.id || "basic";
     await loadEffectById(nextId);
@@ -1520,6 +1692,32 @@ pauseBtn.addEventListener('click', () => {
     previewRunning = !previewRunning;
     pauseBtn.textContent = previewRunning ? 'Pause preview' : 'Resume preview';
     setStatus(previewRunning ? 'Preview resumed' : 'Preview paused');
+});
+
+const shadersBtn = document.getElementById('btn-shaders');
+shadersBtn.addEventListener('click', () => {
+    const open = document.body.classList.toggle('shaders-open');
+    shadersBtn.classList.toggle('active', open);
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+});
+
+document.body.classList.add('lean');
+const helpBtn = document.getElementById('btn-help');
+helpBtn.addEventListener('click', () => {
+    const lean = document.body.classList.toggle('lean');
+    helpBtn.classList.toggle('active', !lean);
+});
+
+// Collapsible sidebar sections: clicking a section header folds its content.
+document.getElementById('sidebar').addEventListener('click', (e) => {
+    const h2 = e.target.closest('#sidebar > h2');
+    if (!h2) return;
+    const collapsed = h2.classList.toggle('collapsed');
+    let el = h2.nextElementSibling;
+    while (el && el.tagName !== 'H2') {
+        el.classList.toggle('section-hidden', collapsed);
+        el = el.nextElementSibling;
+    }
 });
 
 document.getElementById('btn-new').addEventListener('click', async () => {
@@ -1557,7 +1755,7 @@ document.getElementById('import-file').addEventListener('change', async (e) => {
         const json = JSON.parse(await file.text());
         currentFileId = null;
         await loadConfig(json, null);
-        setStatus(`Imported ${file.name} — save to persist on server`);
+        setStatus(`Imported ${file.name} — save to keep it`);
     } catch (err) {
         console.error(err);
         setStatus(err.message, true);
@@ -1597,14 +1795,17 @@ window.addEventListener('pagehide', destroySharedContext);
 requestAnimationFrame(frame);
 
 try {
-    await Promise.all([ensureCanonicalRender(), ensureCanonicalSimulation()]);
+    setTextureBackend({
+        list: () => storage.listTextures(),
+        upload: (file) => storage.uploadTexture(file),
+    });
     await refreshFileList();
     const startId = effectFiles.some((f) => f.id === "basic") ? "basic" : effectFiles[0]?.id;
     if (!startId) throw new Error("No particle effects found");
     await loadEffectById(startId);
 } catch (err) {
     console.error(err);
-    setStatus('Failed to load effects — is the server running?', true);
+    setStatus(err.message || 'Failed to load effects', true);
 }
 </script>
 </body>
