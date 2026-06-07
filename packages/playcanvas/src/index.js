@@ -368,16 +368,35 @@ export class ParticleSystem {
 		material.setParameter("useColorMap", this._colorMapLoaded ? 1 : 0);
 		material.setParameter("alphaCutoff", r.alphaCutoff ?? 0.05);
 
-		const blendType = this._colorMapLoaded
-			? pc.BLEND_NORMAL
-			: (BLEND_BY_ID[r.blendMode] ?? pc.BLEND_NORMAL);
+		// Solid mesh shapes (sphere/cube/cylinder/cone) are real geometry: render
+		// them opaque and depth-writing so they occlude each other and the scene
+		// via the z-buffer. Discs are soft sprites and stay transparent. An
+		// explicit additive/screen/multiply blend keeps the translucent path even
+		// for meshes (e.g. glowing orbs).
+		const shapeId = r.particleShape || "disc";
+		const isMeshShape = shapeId !== "disc";
+		const isTranslucentBlend =
+			r.blendMode === "additive" ||
+			r.blendMode === "additiveAlpha" ||
+			r.blendMode === "screen" ||
+			r.blendMode === "multiply" ||
+			r.blendMode === "premultiplied";
+		const renderSolid = isMeshShape && !isTranslucentBlend;
+
+		const blendType = renderSolid
+			? pc.BLEND_NONE
+			: this._colorMapLoaded
+				? pc.BLEND_NORMAL
+				: (BLEND_BY_ID[r.blendMode] ?? pc.BLEND_NORMAL);
+		const depthWrite = renderSolid ? true : !!r.depthWrite;
+
 		let needsUpdate = false;
 		if (material.blendType !== blendType) {
 			material.blendType = blendType;
 			needsUpdate = true;
 		}
-		if (material.depthWrite !== !!r.depthWrite) {
-			material.depthWrite = !!r.depthWrite;
+		if (material.depthWrite !== depthWrite) {
+			material.depthWrite = depthWrite;
 			needsUpdate = true;
 		}
 
