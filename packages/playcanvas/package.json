@@ -1,6 +1,6 @@
 {
 	"name": "@khudiiash/particles-playcanvas",
-	"version": "0.3.2",
+	"version": "0.3.3",
 	"description": "PlayCanvas WebGPU runtime player for @khudiiash/particles-core effect configs.",
 	"license": "MIT",
 	"author": "khudiiash",
@@ -28,7 +28,8 @@
 	],
 	"scripts": {
 		"build": "esbuild src/index.js --bundle --format=esm --outfile=dist/index.mjs --external:playcanvas",
-		"prepublishOnly": "npm run build"
+		"prepublishOnly": "npm run build",
+		"postpublish": "node ../../scripts/purge-jsdelivr.mjs @khudiiash/particles-playcanvas"
 	},
 	"peerDependencies": {
 		"playcanvas": ">=1.65.0"

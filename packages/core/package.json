@@ -37,7 +37,8 @@
 	],
 	"scripts": {
 		"build": "esbuild src/index.js --bundle --format=esm --outfile=dist/index.mjs --loader:.json=json --external:three && esbuild src/index.js --bundle --format=iife --global-name=ParticlesCore --outfile=dist/particles-core.global.js --loader:.json=json --external:three",
-		"prepublishOnly": "npm run build"
+		"prepublishOnly": "npm run build",
+		"postpublish": "node ../../scripts/purge-jsdelivr.mjs @khudiiash/particles-core"
 	},
 	"peerDependencies": {
 		"three": ">=0.160.0"

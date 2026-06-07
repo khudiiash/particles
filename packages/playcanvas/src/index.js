@@ -356,7 +356,6 @@ export class ParticleSystem {
 		applyColorRenderUniforms(material, this.config.curves);
 		material.setParameter("stretchAlongMotion", r.stretchAlongMotion ?? 0);
 		material.setParameter("depthSoftness", r.depthSoftness ?? 0);
-		material.setParameter("depthWrite", r.depthWrite ? 1 : 0);
 		material.setParameter("useSceneDepth", 0);
 		this._applyShapeUniforms(material);
 		material.setParameter("useLighting", r.useLighting ? 1 : 0);
@@ -368,11 +367,16 @@ export class ParticleSystem {
 		material.setParameter("useColorMap", this._colorMapLoaded ? 1 : 0);
 		material.setParameter("alphaCutoff", r.alphaCutoff ?? 0.05);
 
-		// Solid mesh shapes (sphere/cube/cylinder/cone) are real geometry: render
-		// them opaque and depth-writing so they occlude each other and the scene
-		// via the z-buffer. Discs are soft sprites and stay transparent. An
-		// explicit additive/screen/multiply blend keeps the translucent path even
-		// for meshes (e.g. glowing orbs).
+		// Depth integration. Two modes:
+		//  - "solid": opaque material that writes AND tests depth, so particles
+		//    occlude (and are occluded by) scene geometry — true in-world depth.
+		//    Used for mesh shapes (always real geometry) and for any effect that
+		//    enables `depthWrite` with a normal blend. Round disc edges come from
+		//    the shader's alpha-test discard, and depth is the rasterizer's planar
+		//    billboard depth (early-Z friendly — no per-fragment fragDepth, so it
+		//    stays fast).
+		//  - "blended": translucent (normal/additive/screen/...). Still depth-
+		//    TESTED so it hides behind solid geometry, but does not write depth.
 		const shapeId = r.particleShape || "disc";
 		const isMeshShape = shapeId !== "disc";
 		const isTranslucentBlend =
@@ -381,24 +385,34 @@ export class ParticleSystem {
 			r.blendMode === "screen" ||
 			r.blendMode === "multiply" ||
 			r.blendMode === "premultiplied";
-		const renderSolid = isMeshShape && !isTranslucentBlend;
+		const solid = !isTranslucentBlend && (isMeshShape || !!r.depthWrite);
 
-		const blendType = renderSolid
+		const blendType = solid
 			? pc.BLEND_NONE
 			: this._colorMapLoaded
 				? pc.BLEND_NORMAL
 				: (BLEND_BY_ID[r.blendMode] ?? pc.BLEND_NORMAL);
-		const depthWrite = renderSolid ? true : !!r.depthWrite;
+		const matDepthWrite = solid ? true : !!r.depthWrite;
+		// The shader's per-fragment sphere-cap depth (output.fragDepth) disables
+		// early-Z, so only enable it for the translucent depth-write case where the
+		// flat billboard depth would look wrong. Solid mode uses rasterizer depth.
+		const shaderFragDepth = solid ? 0 : matDepthWrite ? 1 : 0;
+		material.setParameter("depthWrite", shaderFragDepth);
 
 		let needsUpdate = false;
 		if (material.blendType !== blendType) {
 			material.blendType = blendType;
 			needsUpdate = true;
 		}
-		if (material.depthWrite !== depthWrite) {
-			material.depthWrite = depthWrite;
+		if (material.depthWrite !== matDepthWrite) {
+			material.depthWrite = matDepthWrite;
 			needsUpdate = true;
 		}
+		if (material.depthTest !== true) {
+			material.depthTest = true;
+			needsUpdate = true;
+		}
+		material.depthFunc = pc.FUNC_LESSEQUAL;
 
 		this._sceneLightCount = 0;
 		this._shadowBuffers = [];

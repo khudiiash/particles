@@ -29,7 +29,8 @@
 	],
 	"scripts": {
 		"build": "esbuild src/index.js --bundle --format=esm --outfile=dist/index.mjs --external:three --external:three/* --external:@khudiiash/particles-core",
-		"prepublishOnly": "npm run build"
+		"prepublishOnly": "npm run build",
+		"postpublish": "node ../../scripts/purge-jsdelivr.mjs @khudiiash/particles-three"
 	},
 	"peerDependencies": {
 		"three": ">=0.160.0"
