@@ -74,8 +74,9 @@
 				throw new Error("WebGPU required");
 			}
 
-			const app = new pc.AppBase(canvas);
-			app.init({
+			// pc.Application (not AppBase) auto-registers all component systems and
+			// resource handlers, and accepts our pre-created WebGPU device.
+			const app = new pc.Application(canvas, {
 				graphicsDevice: device,
 				mouse: new pc.Mouse(canvas),
 				touch: new pc.TouchDevice(canvas),
