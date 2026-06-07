@@ -357,7 +357,14 @@ export class ParticleSystem {
 		applyColorRenderUniforms(material, this.config.curves);
 		material.setParameter("stretchAlongMotion", r.stretchAlongMotion ?? 0);
 		material.setParameter("depthSoftness", r.depthSoftness ?? 0);
-		material.setParameter("depthWrite", r.depthWrite ? 1 : 0);
+		// Force the shader's per-fragment sphere-cap depth OFF. That path writes
+		// output.fragDepth = clipDepth - cap*0.02, but the 0.02 bias lives in
+		// non-linear NDC space: at typical camera distances it shifts a particle
+		// many world units toward the camera, so it wins the depth test against
+		// geometry it is actually behind (renders "on top of everything"). It also
+		// disables early-Z. The rasterizer's planar billboard depth plus
+		// material.depthWrite / material.depthTest give correct in-world depth.
+		material.setParameter("depthWrite", 0);
 		material.setParameter("useSceneDepth", 0);
 		this._applyShapeUniforms(material);
 		material.setParameter("useLighting", r.useLighting ? 1 : 0);
