@@ -45,8 +45,18 @@
 			particles below the floor are hidden by the floor. Drag to orbit.
 		</div>
 
+		<!-- The particles bundle does a bare `import ... from "playcanvas"`, so the
+		     browser needs an import map to resolve that specifier to the engine. -->
+		<script type="importmap">
+			{
+				"imports": {
+					"playcanvas": "https://cdn.jsdelivr.net/npm/playcanvas@2.19.6/build/playcanvas.mjs"
+				}
+			}
+		</script>
+
 		<script type="module">
-			import * as pc from "https://cdn.jsdelivr.net/npm/playcanvas@2.19.6/build/playcanvas.mjs";
+			import * as pc from "playcanvas";
 			import { ParticleSystem } from "https://cdn.jsdelivr.net/npm/@khudiiash/particles-playcanvas@latest/dist/index.mjs";
 
 			const canvas = document.getElementById("app");
