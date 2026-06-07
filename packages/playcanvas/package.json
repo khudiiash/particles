@@ -1,6 +1,6 @@
 {
 	"name": "@khudiiash/particles-playcanvas",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"description": "PlayCanvas WebGPU runtime player for @khudiiash/particles-core effect configs.",
 	"license": "MIT",
 	"author": "khudiiash",
