@@ -27,7 +27,7 @@
 		"dist"
 	],
 	"scripts": {
-		"build": "esbuild src/index.js --bundle --format=esm --outfile=dist/index.mjs --external:playcanvas --external:@khudiiash/particles-core",
+		"build": "esbuild src/index.js --bundle --format=esm --outfile=dist/index.mjs --external:playcanvas",
 		"prepublishOnly": "npm run build"
 	},
 	"peerDependencies": {
