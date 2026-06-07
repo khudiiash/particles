@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>@khudiiash/particles-playcanvas — depth test reference</title>
+		<style>
+			html,
+			body {
+				margin: 0;
+				height: 100%;
+				background: #11151c;
+				overflow: hidden;
+				font-family: system-ui, sans-serif;
+			}
+			#app {
+				width: 100vw;
+				height: 100vh;
+				display: block;
+			}
+			#hud {
+				position: fixed;
+				top: 10px;
+				left: 12px;
+				color: #cdd6e4;
+				font-size: 12px;
+				line-height: 1.5;
+				background: rgba(0, 0, 0, 0.45);
+				padding: 8px 10px;
+				border-radius: 6px;
+				max-width: 360px;
+				pointer-events: none;
+			}
+			#hud b {
+				color: #7fd1ff;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id="app"></canvas>
+		<div id="hud">
+			<b>Depth test reference.</b><br />
+			A solid pillar sits in the middle of the particle fountain. If depth
+			works, particles passing <i>behind</i> the pillar are hidden by it, and
+			particles below the floor are hidden by the floor. Drag to orbit.
+		</div>
+
+		<script type="module">
+			import * as pc from "https://cdn.jsdelivr.net/npm/playcanvas@2.19.6/build/playcanvas.mjs";
+			import { ParticleSystem } from "https://cdn.jsdelivr.net/npm/@khudiiash/particles-playcanvas@latest/dist/index.mjs";
+
+			const canvas = document.getElementById("app");
+
+			const device = await pc.createGraphicsDevice(canvas, {
+				deviceTypes: [pc.DEVICETYPE_WEBGPU],
+				antialias: true,
+				twgslUrl: "https://cdn.jsdelivr.net/npm/playcanvas@2.19.6/build/twgsl.js",
+				glslangUrl: "https://cdn.jsdelivr.net/npm/playcanvas@2.19.6/build/glslang.js",
+			});
+
+			if (device.deviceType !== pc.DEVICETYPE_WEBGPU) {
+				document.getElementById("hud").innerHTML =
+					"<b>WebGPU is required</b> and was not available in this browser.";
+				throw new Error("WebGPU required");
+			}
+
+			const app = new pc.AppBase(canvas);
+			app.init({
+				graphicsDevice: device,
+				mouse: new pc.Mouse(canvas),
+				touch: new pc.TouchDevice(canvas),
+			});
+			app.setCanvasFillMode(pc.FILLMODE_FILL_WINDOW);
+			app.setCanvasResolution(pc.RESOLUTION_AUTO);
+			app.start();
+			window.addEventListener("resize", () => app.resizeCanvas());
+
+			// --- camera ---
+			const camera = new pc.Entity("camera");
+			camera.addComponent("camera", {
+				clearColor: new pc.Color(0.07, 0.09, 0.12),
+				farClip: 200,
+			});
+			camera.setPosition(0, 4, 12);
+			camera.lookAt(0, 1.5, 0);
+			app.root.addChild(camera);
+
+			// simple orbit
+			let yaw = 0;
+			let pitch = -12;
+			let dist = 13;
+			let dragging = false;
+			let lastX = 0;
+			let lastY = 0;
+			app.mouse.on("mousedown", (e) => {
+				dragging = true;
+				lastX = e.x;
+				lastY = e.y;
+			});
+			app.mouse.on("mouseup", () => (dragging = false));
+			app.mouse.on("mousemove", (e) => {
+				if (!dragging) return;
+				yaw -= (e.x - lastX) * 0.3;
+				pitch = pc.math.clamp(pitch - (e.y - lastY) * 0.3, -80, 80);
+				lastX = e.x;
+				lastY = e.y;
+			});
+			app.mouse.on("mousewheel", (e) => {
+				dist = pc.math.clamp(dist - e.wheelDelta * 1.2, 4, 60);
+			});
+			app.mouse.disableContextMenu();
+
+			// --- light ---
+			const light = new pc.Entity("light");
+			light.addComponent("light", {
+				type: "directional",
+				castShadows: true,
+				intensity: 1.1,
+				shadowBias: 0.2,
+				shadowResolution: 2048,
+			});
+			light.setEulerAngles(55, 30, 0);
+			app.root.addChild(light);
+			app.scene.ambientLight = new pc.Color(0.3, 0.34, 0.4);
+
+			const matFor = (r, g, b) => {
+				const m = new pc.StandardMaterial();
+				m.diffuse = new pc.Color(r, g, b);
+				m.update();
+				return m;
+			};
+
+			// --- floor (opaque, should occlude particles below it) ---
+			const floor = new pc.Entity("floor");
+			floor.addComponent("render", { type: "box", material: matFor(0.55, 0.58, 0.62) });
+			floor.setLocalScale(24, 0.5, 24);
+			floor.setPosition(0, -0.25, 0);
+			app.root.addChild(floor);
+
+			// --- center pillar (opaque, should occlude particles behind it) ---
+			const pillar = new pc.Entity("pillar");
+			pillar.addComponent("render", { type: "box", material: matFor(0.8, 0.35, 0.3) });
+			pillar.setLocalScale(1.5, 6, 1.5);
+			pillar.setPosition(0, 3, 0);
+			app.root.addChild(pillar);
+
+			// --- particles ---
+			// Load the bundled "basic" fountain preset, then force depth on so the
+			// particles render in the world (occluded by the pillar / floor).
+			const config = await fetch(
+				"https://cdn.jsdelivr.net/npm/@khudiiash/particles-core/effects/basic.json",
+			).then((r) => r.json());
+			config.render.depthWrite = true;
+			config.render.depthTest = true;
+			config.render.useLighting = true;
+
+			const ps = await ParticleSystem.create(app, config, {
+				camera,
+				position: new pc.Vec3(0, 0.5, 0),
+			});
+
+			app.on("update", (dt) => {
+				ps.update(dt);
+				const r = pitch * pc.math.DEG_TO_RAD;
+				const y = yaw * pc.math.DEG_TO_RAD;
+				camera.setPosition(
+					Math.sin(y) * Math.cos(r) * dist,
+					2.5 + Math.sin(r) * dist,
+					Math.cos(y) * Math.cos(r) * dist,
+				);
+				camera.lookAt(0, 2, 0);
+			});
+
+			window.__ps = ps;
+			window.__app = app;
+		</script>
+	</body>
+</html>
