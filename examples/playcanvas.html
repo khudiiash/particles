@@ -61,11 +61,11 @@
 
 			const canvas = document.getElementById("app");
 
+			// No glslangUrl/twgslUrl: PlayCanvas 2.19's built-in shaders are WGSL and
+			// our particle material is WGSL too, so no GLSL->WGSL transpile is needed.
 			const device = await pc.createGraphicsDevice(canvas, {
 				deviceTypes: [pc.DEVICETYPE_WEBGPU],
 				antialias: true,
-				twgslUrl: "https://cdn.jsdelivr.net/npm/playcanvas@2.19.6/build/twgsl.js",
-				glslangUrl: "https://cdn.jsdelivr.net/npm/playcanvas@2.19.6/build/glslang.js",
 			});
 
 			if (device.deviceType !== pc.DEVICETYPE_WEBGPU) {
