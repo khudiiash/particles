@@ -433,6 +433,19 @@ function cacheShadowBuffersFromLights(lights) {
 	return buffers;
 }
 
+/** Fully assign every per-light uniform member (L may be null for an empty slot). */
+function setLightUniforms(material, i, L) {
+	material.setParameter(`sceneLight${i}Type`, L ? L.type : -1);
+	material.setParameter(`sceneLight${i}Color`, L?.color || [0, 0, 0]);
+	material.setParameter(`sceneLight${i}Dir`, L?.dir || [0, -1, 0]);
+	material.setParameter(`sceneLight${i}Pos`, L?.pos || [0, 0, 0]);
+	material.setParameter(`sceneLight${i}Range`, L?.range ?? 0);
+	material.setParameter(`sceneLight${i}Spot`, L?.spot || [0, 0, 0, 0]);
+	material.setParameter(`sceneLight${i}CastShadow`, L?.castShadow ? 1 : 0);
+	material.setParameter(`sceneLight${i}ShadowMatrix`, L?.shadowMatrix || IDENTITY_MAT4);
+	material.setParameter(`sceneLight${i}ShadowParams`, L?.shadowParams || [1, 0, 0, 0]);
+}
+
 /**
  * Push scene-light + shadow uniforms to the particle material. Returns the
  * light count + cached shadow buffers used by the draw-time sync.
@@ -444,13 +457,16 @@ export function applySceneLighting(material, app, meshMask, layerIds, options = 
 
 	material?.setParameter("receiveShadow", receiveShadow ? 1 : 0);
 
-	if (!material || (!useLighting && !receiveShadow)) {
-		material?.setParameter("sceneLightCount", 0);
-		material?.setParameter("sceneAmbient", [0, 0, 0]);
-		for (let i = 0; i < MAX_SCENE_LIGHTS; i++) {
-			material?.setParameter(`sceneLight${i}Type`, -1);
-			material?.setParameter(`sceneLight${i}CastShadow`, 0);
-		}
+	if (!material) {
+		return { count: 0, shadowBuffers: [] };
+	}
+
+	if (!useLighting && !receiveShadow) {
+		material.setParameter("sceneLightCount", 0);
+		material.setParameter("sceneAmbient", [0, 0, 0]);
+		// Initialize every per-light uniform member so the WGSL uniform buffer is
+		// fully assigned (otherwise PlayCanvas warns "Value was not set ...").
+		for (let i = 0; i < MAX_SCENE_LIGHTS; i++) setLightUniforms(material, i, null);
 		return { count: 0, shadowBuffers: [] };
 	}
 
@@ -459,16 +475,7 @@ export function applySceneLighting(material, app, meshMask, layerIds, options = 
 	material.setParameter("sceneLightCount", pack.count);
 
 	for (let i = 0; i < MAX_SCENE_LIGHTS; i++) {
-		const L = pack.lights[i];
-		material.setParameter(`sceneLight${i}Type`, L ? L.type : -1);
-		material.setParameter(`sceneLight${i}Color`, L?.color || [0, 0, 0]);
-		material.setParameter(`sceneLight${i}Dir`, L?.dir || [0, -1, 0]);
-		material.setParameter(`sceneLight${i}Pos`, L?.pos || [0, 0, 0]);
-		material.setParameter(`sceneLight${i}Range`, L?.range ?? 0);
-		material.setParameter(`sceneLight${i}Spot`, L?.spot || [0, 0, 0, 0]);
-		material.setParameter(`sceneLight${i}CastShadow`, L?.castShadow ? 1 : 0);
-		material.setParameter(`sceneLight${i}ShadowMatrix`, L?.shadowMatrix || IDENTITY_MAT4);
-		material.setParameter(`sceneLight${i}ShadowParams`, L?.shadowParams || [1, 0, 0, 0]);
+		setLightUniforms(material, i, pack.lights[i]);
 	}
 
 	const shadowBuffers = cacheShadowBuffersFromLights(pack.lights);

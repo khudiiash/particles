@@ -74,6 +74,9 @@ function getFallbackColorMap(device) {
 			ctx.fillStyle = "#ffffff";
 			ctx.fillRect(0, 0, 1, 1);
 			tex.setSource(canvas);
+			// Upload immediately so the engine never lazily uploads it mid-render-pass
+			// (WebGPU forbids texture uploads inside an active pass).
+			tex.upload?.();
 		}
 		FALLBACK_COLOR_MAP_CACHE.set(device, tex);
 	}
@@ -229,6 +232,11 @@ export class ParticleSystem {
 		material.setParameter("drawOrder", this._drawOrderBuffer);
 		this._fallbackColorMap = getFallbackColorMap(this.device);
 		bindColorMapParameters(material, this._fallbackColorMap);
+		// The shader declares a scene-depth texture (used only for soft-particle
+		// fading); bind a pre-uploaded fallback so the engine doesn't substitute
+		// and lazily upload its built-in white texture during the render pass.
+		material.setParameter("uSceneDepthMap", this._fallbackColorMap);
+		material.setParameter("uSceneDepthMapSampler", this._fallbackColorMap);
 		bindFallbackShadowMaps(material, this.device, this._shadowMapFloat);
 		material.cull = pc.CULLFACE_NONE;
 		material.depthWrite = !!r.depthWrite;
